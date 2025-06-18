@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\SensorController;
 use App\Http\Controllers\Api\JenisGabahController;
 use App\Http\Controllers\Api\PrediksiController;
 use App\Http\Controllers\Api\DryingProcessController;
+use App\Http\Controllers\Api\OperatorDryingProcessController;
 
 // Rute publik (tidak memerlukan autentikasi)
 Route::post('login', [AuthController::class, 'login']);
@@ -26,6 +27,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/drying-process/{id}/complete', [DryingProcessController::class, 'complete']);
     Route::post('/drying-process/{id}/update-duration', [DryingProcessController::class, 'updateDuration']);
 
+    Route::get('/operator/prediksi', [OperatorDryingProcessController::class, 'index']);
+    Route::post('/operator/prediksi/store', [OperatorDryingProcessController::class, 'store']);
+    Route::post('/operator/drying-process/{id}/complete', [OperatorDryingProcessController::class, 'complete']);
+    Route::post('/operator/drying-process/{id}/update-duration', [OperatorDryingProcessController::class, 'updateDuration']);
+
     // Route::get('/get-sensor', [SensorController::class, 'getByDevice']);
     // Route::post('/sensor', [SensorController::class, 'store']);
     // Route::get('/sensor-data', [PrediksiController::class, 'sensorData']);
@@ -38,7 +44,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/roles/{id}', [RoleController::class, 'update']);
     Route::delete('/roles/{id}', [RoleController::class, 'destroy']);
     Route::get('/roles/{id}/permissions', [RoleController::class, 'getPermissions']);
+
 });
+    Route::get('/get_sensor/realtime', [SensorController::class, 'getLatestSensorData']);
 
 Route::get('/devices', [DeviceController::class, 'index']);
 Route::post('/devices', [DeviceController::class, 'store']);
@@ -50,3 +58,5 @@ Route::get('/get-sensor', [SensorController::class, 'getByDevice']);
 Route::post('/sensor', [SensorController::class, 'store']);
 Route::get('/sensor-data', [PrediksiController::class, 'sensorData']);
 Route::get('/data-sensor', [SensorController::class, 'index']);
+    
+    
