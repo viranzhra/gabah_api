@@ -103,7 +103,9 @@ class DryingProcessController extends Controller
                 return Carbon::parse($row->timestamp_mulai)->timezone('Asia/Jakarta')->format('d-m-Y H:i');
             })
             ->editColumn('timestamp_selesai', function ($row) {
-                return $row->timestamp_selesai ? Carbon::parse($row->timestamp_selesai)->timezone('Asia/Jakarta')->format('d-m-Y H:i') : '-';
+                return $row->status === 'completed' && $row->timestamp_selesai
+                    ? Carbon::parse($row->timestamp_selesai)->timezone('Asia/Jakarta')->format('d-m-Y H:i')
+                    : '-';
             })
             ->editColumn('status', function ($row) {
                 return match ($row->status) {
@@ -129,6 +131,21 @@ class DryingProcessController extends Controller
     public function store(Request $request)
     {
         try {
+            // Cek apakah ada proses ongoing untuk user yang sama
+            $ongoingProcess = DryingProcess::where('user_id', auth()->id())
+                ->where('status', 'ongoing')
+                ->first();
+
+            if ($ongoingProcess) {
+                \Log::warning('Attempt to create new drying process while ongoing process exists', [
+                    'user_id' => auth()->id(),
+                    'ongoing_process_id' => $ongoingProcess->process_id
+                ]);
+                return response()->json([
+                    'error' => 'Tidak dapat memulai proses pengeringan baru karena ada proses pengeringan yang sedang berjalan.'
+                ], 400);
+            }
+
             $validated = $request->validate([
                 'nama_jenis' => 'required|string',
                 'suhu_gabah_awal' => 'required|numeric|min:0',
@@ -137,7 +154,6 @@ class DryingProcessController extends Controller
                 'kadar_air_target' => 'required|numeric|min:0|max:100',
                 'berat_gabah' => 'required|numeric|min:0.1',
                 'durasi_rekomendasi' => 'required|numeric|min:0',
-                'timestamp_selesai' => 'required|date'
             ]);
 
             if (!auth()->check()) {
@@ -155,7 +171,6 @@ class DryingProcessController extends Controller
                 'user_id' => auth()->id(),
                 'grain_type_id' => $grainType->grain_type_id,
                 'timestamp_mulai' => Carbon::now('Asia/Jakarta'),
-                'timestamp_selesai' => Carbon::parse($request->timestamp_selesai)->timezone('Asia/Jakarta'),
                 'berat_gabah' => $request->berat_gabah,
                 'kadar_air_target' => $request->kadar_air_target,
                 'kadar_air_awal' => $request->kadar_air_awal,
@@ -187,6 +202,23 @@ class DryingProcessController extends Controller
             $process = DryingProcess::findOrFail($id);
             if ($process->status !== 'pending') {
                 return response()->json(['error' => 'Proses tidak dalam status pending'], 400);
+            }
+
+            // Cek apakah ada proses ongoing lain untuk user yang sama
+            $ongoingProcess = DryingProcess::where('user_id', auth()->id())
+                ->where('status', 'ongoing')
+                ->where('process_id', '!=', $id) // Kecualikan proses saat ini
+                ->first();
+
+            if ($ongoingProcess) {
+                \Log::warning('Attempt to start drying process while another ongoing process exists', [
+                    'user_id' => auth()->id(),
+                    'ongoing_process_id' => $ongoingProcess->process_id,
+                    'attempted_process_id' => $id
+                ]);
+                return response()->json([
+                    'error' => 'Tidak dapat memulai proses ini karena ada proses pengeringan lain yang sedang berjalan.'
+                ], 400);
             }
 
             $process->update([

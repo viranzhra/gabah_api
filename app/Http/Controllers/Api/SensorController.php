@@ -123,19 +123,15 @@ class SensorController extends Controller
     public function getLatestSensorData(Request $request)
     {
         try {
-            $ongoingProcess = DryingProcess::where('status', 'ongoing')
-                ->orderByDesc('timestamp_mulai')
-                ->first();
-
-            $processes = DryingProcess::orderBy('timestamp_mulai', 'desc')->get();
-
+            // Ambil proses aktif dari parameter atau yang ongoing
             $activeProcess = null;
-
             if ($request->filled('process_id')) {
                 $activeProcess = DryingProcess::where('process_id', $request->process_id)->first();
-            } elseif ($ongoingProcess) {
-                $activeProcess = $ongoingProcess;
+            } else {
+                $activeProcess = DryingProcess::where('status', 'ongoing')->orderByDesc('timestamp_mulai')->first();
             }
+
+            $processes = DryingProcess::orderBy('timestamp_mulai', 'desc')->get();
 
             $sensorQuery = SensorData::with('sensorDevice');
 
@@ -143,36 +139,37 @@ class SensorController extends Controller
                 $sensorQuery->where('device_id', $request->device_id);
             }
 
-            // Jika process aktif (entah ongoing atau dikirim lewat request)
+            // Jika ada proses aktif
             if ($activeProcess) {
                 $startTime = $activeProcess->timestamp_mulai;
-                $endTime = $activeProcess->timestamp_selesai ?? now();
+                $endTime = ($activeProcess->status === 'ongoing') ? now() : $activeProcess->timestamp_selesai;
 
-                // Cek apakah sudah ada sensor yang terkait process_id ini
-                $existingSensors = SensorData::where('process_id', $activeProcess->process_id)->exists();
-
-                // Kalau belum ada yang terkait, maka assign data sensor berdasarkan timestamp
-                if (!$existingSensors) {
-                    $unlinkedSensors = SensorData::whereNull('process_id')
-                        ->whereBetween('timestamp', [$startTime, $endTime])
-                        ->when($request->filled('device_id'), function ($query) use ($request) {
-                            $query->where('device_id', $request->device_id);
-                        })
-                        ->get();
-
-                    foreach ($unlinkedSensors as $sensor) {
-                        $sensor->process_id = $activeProcess->process_id;
-                        $sensor->save();
-                    }
+                // Abaikan timestamp_selesai jika belum selesai
+                if ($activeProcess->status !== 'completed') {
+                    $activeProcess->timestamp_selesai = null;
                 }
 
-                // Ambil ulang data sensor dengan process_id ini
+                // Ambil sensor yang belum di-assign ke proses ini
+                $unlinkedSensors = SensorData::whereNull('process_id')
+                    ->whereBetween('timestamp', [$startTime, $endTime])
+                    ->when($request->filled('device_id'), function ($query) use ($request) {
+                        return $query->where('device_id', $request->device_id);
+                    })
+                    ->get();
+
+                foreach ($unlinkedSensors as $sensor) {
+                    $sensor->process_id = $activeProcess->process_id;
+                    $sensor->save();
+                }
+
+                // Pastikan ambil sensor yang sudah dikaitkan ke proses aktif
                 $sensorQuery->where('process_id', $activeProcess->process_id);
             }
 
-            // Ambil data sensor (sudah pasti terkait dengan process aktif)
+            // Ambil data sensor terbaru
             $sensorDataList = $sensorQuery->orderBy('timestamp', 'desc')->get();
 
+            // Mapping ke array
             $sensorArray = $sensorDataList->map(function ($s) {
                 return [
                     'device_name' => $s->sensorDevice->device_name ?? null,
@@ -192,12 +189,22 @@ class SensorController extends Controller
                 ? Carbon::parse($sensorDataList->max('timestamp'))->timezone('Asia/Jakarta')->format('Y-m-d H:i:s')
                 : null;
 
+            $targetAchieved = $activeProcess ? $avgMoisture <= $activeProcess->kadar_air_target : false;
+
+            // Jika target tercapai, update status (opsional, atau lakukan via endpoint stop manual)
+            if ($targetAchieved && $activeProcess && $activeProcess->status === 'ongoing') {
+                // Kamu bisa update status secara otomatis di sini jika mau
+                // $activeProcess->status = 'completed';
+                // $activeProcess->timestamp_selesai = now();
+                // $activeProcess->save();
+            }
+
             $sensors = [
                 'avg_grain_temperature' => $avgGrainTemp,
                 'avg_grain_moisture' => $avgMoisture,
                 'avg_room_temperature' => $avgRoomTemp,
                 'latest_timestamp' => $latestTimestamp,
-                'target_moisture_achieved' => $activeProcess ? $avgMoisture <= $activeProcess->kadar_air_target : false,
+                'target_moisture_achieved' => $targetAchieved,
                 'data' => $sensorArray
             ];
 
@@ -216,7 +223,7 @@ class SensorController extends Controller
                 ]
             ] : [
                 'drying_process' => null,
-                'message' => 'Tidak ada proses pengeringan aktif. Menampilkan semua data sensor tersedia.'
+                'message' => 'Tidak ada proses pengeringan aktif.'
             ];
 
             $allProcesses = $processes->map(function ($p) {

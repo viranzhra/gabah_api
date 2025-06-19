@@ -53,6 +53,7 @@ Route::post('/devices', [DeviceController::class, 'store']);
 Route::put('/devices/{id}', [DeviceController::class, 'update']);
 Route::delete('/devices/{id}', [DeviceController::class, 'destroy']);
 Route::get('/devices/averages', [DeviceController::class, 'averages']);
+Route::get('/devices/{id}', [DeviceController::class, 'show']);
 
 Route::get('/get-sensor', [SensorController::class, 'getByDevice']);
 Route::post('/sensor', [SensorController::class, 'store']);

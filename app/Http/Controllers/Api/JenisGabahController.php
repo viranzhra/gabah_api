@@ -5,106 +5,146 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\GrainType;
+use Illuminate\Support\Facades\Validator;
 
 class JenisGabahController extends Controller
 {
     public function index()
     {
-        $data = GrainType::select('grain_type_id', 'nama_jenis', 'deskripsi')->get();
-
-        $data = $data->map(function ($item, $key) {
-            $item->index = $key + 1;
-            return $item;
-        });
-
-        return response()->json([
-            'status' => true,
-            'data' => $data
-        ]);
+        try {
+            $data = GrainType::select('grain_type_id', 'nama_jenis', 'deskripsi')->get();
+            return response()->json([
+                'status' => true,
+                'data' => $data
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Gagal memuat data: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function show($id)
     {
-        $item = GrainType::find($id);
-
-        if (!$item) {
+        try {
+            $item = GrainType::find($id);
+            if (!$item) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Data tidak ditemukan'
+                ], 404);
+            }
+            return response()->json([
+                'status' => true,
+                'data' => $item
+            ], 200);
+        } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
-                'message' => 'Data tidak ditemukan'
-            ], 404);
+                'message' => 'Gagal mengambil data: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json([
-            'status' => true,
-            'data' => $item
-        ]);
     }
 
     public function store(Request $request)
     {
-        // Validasi input
-        $request->validate([
-            'nama_jenis' => 'required|string|max:255',
-            'deskripsi' => 'nullable|string',
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'nama_jenis' => 'required|string|max:255',
+                'deskripsi' => 'nullable|string',
+            ]);
 
-        $item = GrainType::create([
-            'nama_jenis' => $request->nama_jenis,
-            'deskripsi' => $request->deskripsi,
-        ]);
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Data berhasil disimpan',
-            'data' => $item
-        ], 201);
+            $item = GrainType::create([
+                'nama_jenis' => $request->nama_jenis,
+                'deskripsi' => $request->deskripsi,
+            ]);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Data berhasil disimpan',
+                'data' => $item
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Gagal menyimpan data: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function update(Request $request, $id)
     {
-        $item = GrainType::find($id);
+        try {
+            $item = GrainType::find($id);
+            if (!$item) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Data tidak ditemukan'
+                ], 404);
+            }
 
-        if (!$item) {
+            $validator = Validator::make($request->all(), [
+                'nama_jenis' => 'required|string|max:255',
+                'deskripsi' => 'nullable|string',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $item->update([
+                'nama_jenis' => $request->nama_jenis,
+                'deskripsi' => $request->deskripsi,
+            ]);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Data berhasil diperbarui',
+                'data' => $item
+            ], 200);
+        } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
-                'message' => 'Data tidak ditemukan'
-            ], 404);
+                'message' => 'Gagal memperbarui data: ' . $e->getMessage()
+            ], 500);
         }
-
-        // Validasi input
-        $request->validate([
-            'nama_jenis' => 'required|string|max:255',
-            'deskripsi' => 'nullable|string',
-        ]);
-
-        $item->update([
-            'nama_jenis' => $request->nama_jenis,
-            'deskripsi' => $request->deskripsi,
-        ]);
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Data berhasil diperbarui',
-            'data' => $item
-        ]);
     }
 
     public function destroy($id)
     {
-        $item = GrainType::find($id);
+        try {
+            $item = GrainType::find($id);
+            if (!$item) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Data tidak ditemukan'
+                ], 404);
+            }
 
-        if (!$item) {
+            $item->delete();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Data berhasil dihapus'
+            ], 200);
+        } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
-                'message' => 'Data tidak ditemukan'
-            ], 404);
+                'message' => 'Gagal menghapus data: ' . $e->getMessage()
+            ], 500);
         }
-
-        $item->delete();
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Data berhasil dihapus'
-        ]);
     }
 }

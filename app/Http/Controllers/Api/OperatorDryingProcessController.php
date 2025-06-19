@@ -110,7 +110,7 @@ class OperatorDryingProcessController extends Controller
                 'kadar_air_target' => 'required|numeric|between:0,100',
                 'berat_gabah' => 'required|numeric|gt:0',
                 'durasi_rekomendasi' => 'required|numeric|gte:0',
-                'timestamp_selesai' => 'required|date',
+                // 'timestamp_selesai' => 'required|date',
             ]);
 
             $grainType = GrainType::where('nama_jenis', $request->nama_jenis)->first();
@@ -123,7 +123,7 @@ class OperatorDryingProcessController extends Controller
                 'grain_type_id' => $grainType->grain_type_id,
                 'status' => 'ongoing',
                 'timestamp_mulai' => Carbon::now(),
-                'timestamp_selesai' => Carbon::parse($request->timestamp_selesai),
+                // 'timestamp_selesai' => Carbon::parse($request->timestamp_selesai),
                 'berat_gabah' => $request->berat_gabah,
                 'kadar_air_target' => $request->kadar_air_target,
                 'kadar_air_awal' => $request->kadar_air_gabah,
