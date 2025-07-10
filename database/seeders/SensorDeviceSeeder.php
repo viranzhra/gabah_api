@@ -10,10 +10,10 @@ class SensorDeviceSeeder extends Seeder
     public function run(): void
     {
         SensorDevice::insert([
-            ['device_name' => 'tombak1', 'location' => 'Kanan', 'device_type' => 'grain_sensor'],
-            ['device_name' => 'tombak2', 'location' => 'Kiri', 'device_type' => 'grain_sensor'],
-            ['device_name' => 'tombak3', 'location' => 'Tengah Kanan', 'device_type' => 'grain_sensor'],
-            ['device_name' => 'panel_room_temp', 'location' => 'Tengah Kiri', 'device_type' => 'room_sensor'],
+            ['device_name' => 'tombak1', 'deskripsi' => 'Kanan', 'status' => 'aktif'],
+            ['device_name' => 'tombak2', 'deskripsi' => 'Kiri', 'status' => 'aktif'],
+            ['device_name' => 'tombak3', 'deskripsi' => 'Tengah Kanan', 'status' => 'aktif'],
+            ['device_name' => 'tombak4', 'deskripsi' => 'Tengah Kiri', 'status' => 'tidak_aktif'],
         ]);
     }
 }

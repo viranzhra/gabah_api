@@ -41,6 +41,8 @@ return new class extends Migration
             $table->float('suhu_gabah_akhir')->nullable(); // Tambahan
             $table->float('suhu_ruangan_awal'); // Tambahan
             $table->float('suhu_ruangan_akhir')->nullable(); // Tambahan
+            $table->float('suhu_pembakaran_awal'); // Tambahan
+            $table->float('suhu_pembakaran_akhir')->nullable(); // Tambahan
             $table->float('durasi_rekomendasi');
             $table->float('durasi_aktual')->nullable();
             $table->float('durasi_terlaksana')->default(0);

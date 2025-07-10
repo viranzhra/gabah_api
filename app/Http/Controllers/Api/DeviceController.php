@@ -13,7 +13,7 @@ class DeviceController extends Controller
     public function index()
     {
         try {
-            $data = SensorDevice::select('device_id', 'device_name', 'location', 'device_type')->get();
+            $data = SensorDevice::select('device_id', 'device_name', 'deskripsi', 'status')->get();
             return response()->json([
                 'status' => true,
                 'data' => $data
@@ -31,8 +31,8 @@ class DeviceController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'device_name' => 'required|string|max:50',
-                'location' => 'required|string|max:100',
-                'device_type' => 'required|in:grain_sensor,room_sensor',
+                'deskripsi' => 'required|string|max:100',
+                'status' => 'required|in:aktif,tidak_aktif',
             ]);
 
             if ($validator->fails()) {
@@ -44,8 +44,8 @@ class DeviceController extends Controller
 
             $device = SensorDevice::create([
                 'device_name' => $request->device_name,
-                'location' => $request->location,
-                'device_type' => $request->device_type,
+                'deskripsi' => $request->deskripsi,
+                'status' => $request->status,
             ]);
 
             return response()->json([
@@ -64,7 +64,7 @@ class DeviceController extends Controller
     public function show($id)
     {
         try {
-            $device = SensorDevice::select('device_id', 'device_name', 'location', 'device_type')->findOrFail($id);
+            $device = SensorDevice::select('device_id', 'device_name', 'deskripsi', 'status')->findOrFail($id);
             return response()->json([
                 'status' => true,
                 'data' => $device
@@ -87,8 +87,8 @@ class DeviceController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'device_name' => 'required|string|max:50',
-                'location' => 'required|string|max:100',
-                'device_type' => 'required|in:grain_sensor,room_sensor',
+                'deskripsi' => 'required|string|max:100',
+                // 'status' => 'required|in:aktif,tidak_aktif',
             ]);
 
             if ($validator->fails()) {
@@ -101,8 +101,8 @@ class DeviceController extends Controller
             $device = SensorDevice::findOrFail($id);
             $device->update([
                 'device_name' => $request->device_name,
-                'location' => $request->location,
-                'device_type' => $request->device_type,
+                'deskripsi' => $request->deskripsi,
+                // 'status' => $request->status,
             ]);
 
             return response()->json([
@@ -146,33 +146,33 @@ class DeviceController extends Controller
         }
     }
 
-    public function averages()
-    {
-        try {
-            // Check if the SensorData table exists and has data
-            if (!\Schema::hasTable('sensor_data')) {
-                throw new \Exception('Tabel sensor_data tidak ditemukan.');
-            }
+    // public function averages()
+    // {
+    //     try {
+    //         // Check if the SensorData table exists and has data
+    //         if (SensorData::hasTable('sensor_data')) {
+    //             throw new \Exception('Tabel sensor_data tidak ditemukan.');
+    //         }
 
-            $averages = SensorData::selectRaw('
-                AVG(kadar_air_gabah) as avg_kadar_air_gabah,
-                AVG(suhu_gabah) as avg_suhu_gabah,
-                AVG(suhu_ruangan) as avg_suhu_ruangan
-            ')->first();
+    //         $averages = SensorData::selectRaw('
+    //             AVG(kadar_air_gabah) as avg_kadar_air_gabah,
+    //             AVG(suhu_gabah) as avg_suhu_gabah,
+    //             AVG(suhu_ruangan) as avg_suhu_ruangan
+    //         ')->first();
 
-            return response()->json([
-                'status' => true,
-                'data' => [
-                    'avg_kadar_air_gabah' => round($averages->avg_kadar_air_gabah ?? 0, 2),
-                    'avg_suhu_gabah' => round($averages->avg_suhu_gabah ?? 0, 2),
-                    'avg_suhu_ruangan' => round($averages->avg_suhu_ruangan ?? 0, 2),
-                ]
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Gagal memuat data rata-rata: ' . $e->getMessage()
-            ], 500);
-        }
-    }
+    //         return response()->json([
+    //             'status' => true,
+    //             'data' => [
+    //                 'avg_kadar_air_gabah' => round($averages->avg_kadar_air_gabah ?? 0, 2),
+    //                 'avg_suhu_gabah' => round($averages->avg_suhu_gabah ?? 0, 2),
+    //                 'avg_suhu_ruangan' => round($averages->avg_suhu_ruangan ?? 0, 2),
+    //             ]
+    //         ], 200);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Gagal memuat data rata-rata: ' . $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
 }

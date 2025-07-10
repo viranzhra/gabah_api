@@ -4,39 +4,51 @@ namespace Database\Seeders;
 
 use App\Models\GrainType;
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Spatie\Permission\Models\Role;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        $this->call(RolePermissionSeeder::class);
-        $this->call(RoleSeeder::class);
-        $this->call(SensorDeviceSeeder::class);
-        $this->call(GrainTypeSeeder::class);
-
-        // User::factory(10)->create();
+        // Membuat peran
+        Role::firstOrCreate(
+            ['name' => 'Administrator', 'guard_name' => 'web'],
+            ['guard_name' => 'web']
+        );
+        Role::firstOrCreate(
+            ['name' => 'Operator', 'guard_name' => 'web'],
+            ['guard_name' => 'web']
+        );
 
         // Membuat akun admin
         $admin = User::factory()->create([
+            'id' => 1,
             'name' => 'Admin User',
             'email' => 'admin@gmail.com',
-            'password' => bcrypt('admin123'), // Password yang di-hash
+            'password' => bcrypt('admin123'),
+            'email_verified_at' => now(),
         ]);
-        // Memberikan role Admin ke akun admin
         $admin->assignRole('Administrator');
 
-        // Membuat akun Siswa Baru
+        // Membuat akun operator
         $operator = User::factory()->create([
+            'id' => 2,
             'name' => 'Syzahra',
             'email' => 'syzahra@gmail.com',
-            'password' => bcrypt('syzahra123'), // Password yang di-hash
+            'password' => bcrypt('syzahra123'),
+            'email_verified_at' => now(),
         ]);
-        // Memberikan role Siswa Baru
         $operator->assignRole('Operator');
+
+        // Panggil seeder lain
+        $this->call([
+            RolePermissionSeeder::class,
+            RoleSeeder::class, // Tetap panggil untuk logika tambahan
+            SensorDeviceSeeder::class,
+            SensorDataSeeder::class,
+            GrainTypeSeeder::class,
+            TrainingDataSeeder::class,
+        ]);
     }
 }

@@ -29,6 +29,7 @@ class SensorController extends Controller
                 AVG(kadar_air_gabah) as avg_kadar_air_gabah,
                 AVG(suhu_gabah) as avg_suhu_gabah,
                 AVG(suhu_ruangan) as avg_suhu_ruangan
+                AVG(suhu_pembakaran) as avg_suhu_pembakaran
             ')
                 ->where('device_id', $deviceId)
                 ->first();
@@ -49,6 +50,7 @@ class SensorController extends Controller
                 AVG(kadar_air_gabah) as avg_kadar_air_gabah,
                 AVG(suhu_gabah) as avg_suhu_gabah,
                 AVG(suhu_ruangan) as avg_suhu_ruangan
+                AVG(suhu_pembakaran) as avg_suhu_pembakaran
             ')
                 ->whereIn('sensor_id', function ($query) {
                     $query->selectRaw('MAX(sensor_id)')
@@ -71,12 +73,14 @@ class SensorController extends Controller
                     'kadar_air_gabah' => $item->kadar_air_gabah ?? '-',
                     'suhu_gabah' => $item->suhu_gabah ?? '-',
                     'suhu_ruangan' => $item->suhu_ruangan ?? '-',
+                    'suhu_pembakaran' => $item->suhu_pembakaran ?? '-',
                 ];
             }),
             'averages' => [
                 'avg_kadar_air_gabah' => round($averages->avg_kadar_air_gabah, 2) ?? 0,
                 'avg_suhu_gabah' => round($averages->avg_suhu_gabah, 2) ?? 0,
                 'avg_suhu_ruangan' => round($averages->avg_suhu_ruangan, 2) ?? 0,
+                'avg_suhu_pembakaran' => round($averages->avg_suhu_pembakaran, 2) ?? 0,
             ]
         ]);
     }
@@ -89,6 +93,7 @@ class SensorController extends Controller
             'kadar_air_gabah' => 'nullable|numeric|required_if:device_type,grain_sensor',
             'suhu_gabah' => 'nullable|numeric|required_if:device_type,grain_sensor',
             'suhu_ruangan' => 'nullable|numeric|required_if:device_type,room_sensor',
+            'suhu_pembakaran' => 'nullable|numeric|required_if:device_type,grain_sensor',
             'timestamp' => 'required|date',
         ]);
 
@@ -107,6 +112,7 @@ class SensorController extends Controller
         if ($request->device_type === 'grain_sensor') {
             $data['kadar_air_gabah'] = $request->kadar_air_gabah;
             $data['suhu_gabah'] = $request->suhu_gabah;
+            $data['suhu_pembakaran'] = $request->suhu_pembakaran;
         } else {
             $data['suhu_ruangan'] = $request->suhu_ruangan;
         }
@@ -177,6 +183,7 @@ class SensorController extends Controller
                     'suhu_gabah' => round($s->suhu_gabah, 2),
                     'kadar_air_gabah' => round($s->kadar_air_gabah, 2),
                     'suhu_ruangan' => round($s->suhu_ruangan, 2),
+                    'suhu_pembakaran' => round($s->suhu_pembakaran, 2),
                     'timestamp' => Carbon::parse($s->timestamp)->timezone('Asia/Jakarta')->format('Y-m-d H:i:s'),
                     'process_id' => $s->process_id
                 ];
@@ -185,6 +192,7 @@ class SensorController extends Controller
             $avgGrainTemp = round($sensorDataList->avg('suhu_gabah'), 2);
             $avgMoisture = round($sensorDataList->avg('kadar_air_gabah'), 2);
             $avgRoomTemp = round($sensorDataList->avg('suhu_ruangan'), 2);
+            $avgBurnTemp = round($sensorDataList->avg('suhu_pembakaran'), 2);
             $latestTimestamp = $sensorDataList->max('timestamp')
                 ? Carbon::parse($sensorDataList->max('timestamp'))->timezone('Asia/Jakarta')->format('Y-m-d H:i:s')
                 : null;
@@ -203,6 +211,7 @@ class SensorController extends Controller
                 'avg_grain_temperature' => $avgGrainTemp,
                 'avg_grain_moisture' => $avgMoisture,
                 'avg_room_temperature' => $avgRoomTemp,
+                'avg_combustion_temperature' => $avgBurnTemp,
                 'latest_timestamp' => $latestTimestamp,
                 'target_moisture_achieved' => $targetAchieved,
                 'data' => $sensorArray

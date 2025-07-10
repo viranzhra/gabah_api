@@ -21,6 +21,8 @@ class DryingProcess extends Model
         'suhu_gabah_akhir',
         'suhu_ruangan_awal',
         'suhu_ruangan_akhir',
+        'suhu_pembakaran_awal',
+        'suhu_pembakaran_akhir',
         'durasi_rekomendasi',
         'durasi_aktual',
         'durasi_terlaksana',
@@ -40,6 +42,8 @@ class DryingProcess extends Model
         'suhu_gabah_akhir' => 'float',
         'suhu_ruangan_awal' => 'float',
         'suhu_ruangan_akhir' => 'float',
+        'suhu_pembakaran_awal' => 'float',
+        'suhu_pembakaran_akhir' => 'float',
     ];
 
     public function grainType()

@@ -19,6 +19,7 @@ return new class extends Migration
             $table->float('kadar_air_gabah')->nullable();
             $table->float('suhu_gabah')->nullable();
             $table->float('suhu_ruangan')->nullable();
+            $table->float('suhu_pembakaran')->nullable();
             $table->timestamps();
         });
     }

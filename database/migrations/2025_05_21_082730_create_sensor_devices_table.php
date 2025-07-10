@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('sensor_devices', function (Blueprint $table) {
             $table->id('device_id');
             $table->string('device_name', 50);
-            $table->string('location', 100);
-            $table->enum('device_type', ['grain_sensor', 'room_sensor']);
+            $table->string('deskripsi', 100);
+            $table->enum('status', ['aktif', 'tidak_aktif']);
             $table->timestamps();
         });
     }

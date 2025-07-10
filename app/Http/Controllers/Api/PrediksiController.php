@@ -62,6 +62,7 @@ class PrediksiController extends Controller
                 'nama_jenis' => 'required|string|exists:grain_types,nama_jenis',
                 'suhu_gabah' => 'required|numeric|min:0',
                 'suhu_ruangan' => 'required|numeric|min:0',
+                'suhu_pembakaran' => 'required|numeric|min:0',
                 'kadar_air_awal' => 'required|numeric|min:0|max:100',
                 'kadar_air_target' => 'required|numeric|min:0|max:100',
                 'berat_gabah' => 'required|numeric|min:0.1',
@@ -168,7 +169,7 @@ class PrediksiController extends Controller
         $sensorData = \App\Models\SensorData::whereNull('process_id')
             ->orderByDesc('timestamp')
             ->limit(4)
-            ->get(['sensor_id', 'suhu_gabah', 'suhu_ruangan', 'kadar_air_gabah', 'timestamp']);
+            ->get(['sensor_id', 'suhu_gabah', 'suhu_ruangan', 'suhu_pembakaran', 'kadar_air_gabah', 'timestamp']);
 
         if ($sensorData->count() < 4) {
             return response()->json([

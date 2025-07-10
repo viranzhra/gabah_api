@@ -9,7 +9,7 @@ class SensorDevice extends Model
     protected $table = 'sensor_devices';
     protected $primaryKey = 'device_id';
 
-    protected $fillable = ['device_name', 'location', 'device_type', 'created_at'];
+    protected $fillable = ['device_name', 'deskripsi', 'status', 'created_at'];
 
     public $timestamps = false;
 

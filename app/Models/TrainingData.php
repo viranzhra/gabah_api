@@ -2,32 +2,23 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class TrainingData extends Model
 {
-    protected $table = 'training_data';
-    protected $primaryKey = 'training_id';
+    use HasFactory;
 
     protected $fillable = [
-        'process_id',
-        'kadar_air_awal',
-        'suhu_gabah_awal',
-        'suhu_ruangan_awal',
-        'berat_gabah_awal',
-        'suhu_gabah_akhir',
-        'suhu_ruangan_akhir',
-        'berat_gabah_akhir',
-        'kadar_air_akhir',
-        'durasi_nyata',
-        'tanggal_awal',
-        'tanggal_akhir'
+        'training_group_id',
+        'grain_temperature',
+        'grain_moisture',
+        'room_temperature',
+        'weight'
     ];
 
-    public $timestamps = false;
-
-    public function dryingProcess()
+    public function group()
     {
-        return $this->belongsTo(DryingProcess::class, 'process_id');
+        return $this->belongsTo(TrainingGroup::class, 'training_group_id');
     }
 }

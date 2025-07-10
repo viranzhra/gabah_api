@@ -10,11 +10,17 @@ use Carbon\Carbon;
 use App\Models\DryingProcess;
 use App\Models\SensorData;
 use App\Models\GrainType;
-use Illuminate\Support\Facades\Auth; // Impor facade Auth yang benar
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class OperatorDryingProcessController extends Controller
 {
+    /**
+     * Display a listing of drying processes.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function index(Request $request)
     {
         $userId = Auth::id();
@@ -38,6 +44,8 @@ class OperatorDryingProcessController extends Controller
                 'drying_processes.suhu_gabah_akhir',
                 'drying_processes.suhu_ruangan_awal',
                 'drying_processes.suhu_ruangan_akhir',
+                'drying_processes.suhu_pembakaran_awal',
+                'drying_processes.suhu_pembakaran_akhir',
                 DB::raw('CAST(drying_processes.durasi_rekomendasi AS DECIMAL(10,2)) AS durasi_rekomendasi'),
                 DB::raw('CAST(drying_processes.durasi_aktual AS DECIMAL(10,2)) AS durasi_aktual'),
                 DB::raw('CAST(drying_processes.durasi_terlaksana AS DECIMAL(10,2)) AS durasi_terlaksana'),
@@ -55,10 +63,12 @@ class OperatorDryingProcessController extends Controller
             ->addIndexColumn()
             ->editColumn('suhu_gabah_awal', fn($row) => $row->suhu_gabah_awal ? number_format($row->suhu_gabah_awal, 2) : '-')
             ->editColumn('suhu_ruangan_awal', fn($row) => $row->suhu_ruangan_awal ? number_format($row->suhu_ruangan_awal, 2) : '-')
+            ->editColumn('suhu_pembakaran_awal', fn($row) => $row->suhu_pembakaran_awal ? number_format($row->suhu_pembakaran_awal, 2) : '-')
             ->editColumn('kadar_air_awal', fn($row) => $row->kadar_air_awal ? number_format($row->kadar_air_awal, 2) : '-')
             ->editColumn('kadar_air_target', fn($row) => $row->kadar_air_target ? number_format($row->kadar_air_target, 2) : '-')
             ->editColumn('suhu_gabah_akhir', fn($row) => $row->suhu_gabah_akhir ? number_format($row->suhu_gabah_akhir, 2) : '-')
             ->editColumn('suhu_ruangan_akhir', fn($row) => $row->suhu_ruangan_akhir ? number_format($row->suhu_ruangan_akhir, 2) : '-')
+            ->editColumn('suhu_pembakaran_akhir', fn($row) => $row->suhu_pembakaran_akhir ? number_format($row->suhu_pembakaran_akhir, 2) : '-')
             ->editColumn('durasi_rekomendasi', function ($row) {
                 Log::debug('Formatting durasi_rekomendasi', ['process_id' => $row->process_id, 'durasi' => $row->durasi_rekomendasi]);
                 if ($row->durasi_rekomendasi === null || $row->durasi_rekomendasi === '') return '-';
@@ -76,7 +86,7 @@ class OperatorDryingProcessController extends Controller
                     'durasi_terlaksana' => $row->durasi_terlaksana
                 ]);
                 if ($row->status === 'ongoing' && $row->timestamp_mulai) {
-                    $start = Carbon::parse($row->timestamp_mulai);
+                    $start = Carbon::parse($row->timestamp_mulai)->setTimezone('Asia/Jakarta');
                     $now = Carbon::now('Asia/Jakarta');
                     $minutes = $start->diffInMinutes($now);
                     return number_format($minutes, 2);
@@ -99,18 +109,24 @@ class OperatorDryingProcessController extends Controller
             ->make(true);
     }
 
+    /**
+     * Store a new drying process.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function store(Request $request)
     {
         try {
             $validated = $request->validate([
                 'nama_jenis' => 'required|string|max:255',
-                'suhu_gabah' => 'required|numeric|gte:0',
-                'suhu_ruangan' => 'required|numeric|gte:0',
-                'kadar_air_gabah' => 'required|numeric|between:0,100',
+                'suhu_gabah_awal' => 'required|numeric|gte:0',
+                'suhu_ruangan_awal' => 'required|numeric|gte:0',
+                'suhu_pembakaran_awal' => 'required|numeric|gte:0',
+                'kadar_air_awal' => 'required|numeric|between:0,100',
                 'kadar_air_target' => 'required|numeric|between:0,100',
                 'berat_gabah' => 'required|numeric|gt:0',
                 'durasi_rekomendasi' => 'required|numeric|gte:0',
-                // 'timestamp_selesai' => 'required|date',
             ]);
 
             $grainType = GrainType::where('nama_jenis', $request->nama_jenis)->first();
@@ -122,13 +138,13 @@ class OperatorDryingProcessController extends Controller
                 'user_id' => Auth::id(),
                 'grain_type_id' => $grainType->grain_type_id,
                 'status' => 'ongoing',
-                'timestamp_mulai' => Carbon::now(),
-                // 'timestamp_selesai' => Carbon::parse($request->timestamp_selesai),
+                'timestamp_mulai' => Carbon::now('Asia/Jakarta'),
                 'berat_gabah' => $request->berat_gabah,
                 'kadar_air_target' => $request->kadar_air_target,
-                'kadar_air_awal' => $request->kadar_air_gabah,
-                'suhu_gabah_awal' => $request->suhu_gabah,
-                'suhu_ruangan_awal' => $request->suhu_ruangan,
+                'kadar_air_awal' => $request->kadar_air_awal,
+                'suhu_gabah_awal' => $request->suhu_gabah_awal,
+                'suhu_ruangan_awal' => $request->suhu_ruangan_awal,
+                'suhu_pembakaran_awal' => $request->suhu_pembakaran_awal,
                 'durasi_rekomendasi' => $request->durasi_rekomendasi,
             ]);
 
@@ -145,6 +161,13 @@ class OperatorDryingProcessController extends Controller
         }
     }
 
+    /**
+     * Complete an ongoing drying process.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function complete(Request $request, $id)
     {
         try {
@@ -152,6 +175,7 @@ class OperatorDryingProcessController extends Controller
                 'kadar_air_akhir' => 'required|numeric|between:0,100',
                 'suhu_gabah_akhir' => 'required|numeric|gte:0',
                 'suhu_ruangan_akhir' => 'required|numeric|gte:0',
+                'suhu_pembakaran_akhir' => 'required|numeric|gte:0',
                 'timestamp_selesai' => 'required|date_format:Y-m-d\TH:i:s.v\Z',
             ], [
                 'timestamp_selesai.date_format' => 'Format timestamp_selesai harus ISO 8601 (contoh: 2025-06-17T15:34:00.000Z)',
@@ -196,6 +220,7 @@ class OperatorDryingProcessController extends Controller
                     'kadar_air_akhir' => $validated['kadar_air_akhir'],
                     'suhu_gabah_akhir' => $validated['suhu_gabah_akhir'],
                     'suhu_ruangan_akhir' => $validated['suhu_ruangan_akhir'],
+                    'suhu_pembakaran_akhir' => $validated['suhu_pembakaran_akhir'],
                     'durasi_aktual' => $durasi_aktual,
                     'durasi_terlaksana' => $durasi_aktual,
                 ]);
@@ -207,6 +232,9 @@ class OperatorDryingProcessController extends Controller
                 'process_id' => $id,
                 'durasi_aktual' => $durasi_aktual,
                 'kadar_air_akhir' => $validated['kadar_air_akhir'],
+                'suhu_gabah_akhir' => $validated['suhu_gabah_akhir'],
+                'suhu_ruangan_akhir' => $validated['suhu_ruangan_akhir'],
+                'suhu_pembakaran_akhir' => $validated['suhu_pembakaran_akhir'],
                 'user_id' => Auth::id(),
                 'process_owner_user_id' => $process->user_id,
             ]);
@@ -241,7 +269,13 @@ class OperatorDryingProcessController extends Controller
         }
     }
 
-    // Metode lainnya (start, updateDuration) tetap sama
+    /**
+     * Start a pending drying process.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function start(Request $request, $id)
     {
         try {
@@ -269,6 +303,13 @@ class OperatorDryingProcessController extends Controller
         }
     }
 
+    /**
+     * Update the duration of an ongoing drying process.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function updateDuration(Request $request, $id)
     {
         try {
@@ -281,7 +322,8 @@ class OperatorDryingProcessController extends Controller
             $validated = $request->validate([
                 'kadar_air_akhir' => 'required|numeric|min:0|max:100',
                 'suhu_gabah_akhir' => 'required|numeric|min:0',
-                'suhu_ruangan_akhir' => 'required|numeric|min:0'
+                'suhu_ruangan_akhir' => 'required|numeric|min:0',
+                'suhu_pembakaran_akhir' => 'required|numeric|min:0'
             ], [
                 'kadar_air_akhir.required' => 'Kadar air akhir wajib diisi.',
                 'kadar_air_akhir.numeric' => 'Kadar air akhir harus berupa angka.',
@@ -292,57 +334,65 @@ class OperatorDryingProcessController extends Controller
                 'suhu_gabah_akhir.min' => 'Suhu gabah akhir tidak boleh kurang dari 0.',
                 'suhu_ruangan_akhir.required' => 'Suhu ruangan akhir wajib diisi.',
                 'suhu_ruangan_akhir.numeric' => 'Suhu ruangan akhir harus berupa angka.',
-                'suhu_ruangan_akhir.min' => 'Suhu ruangan akhir tidak boleh kurang dari 0.'
+                'suhu_ruangan_akhir.min' => 'Suhu ruangan akhir tidak boleh kurang dari 0.',
+                'suhu_pembakaran_akhir.required' => 'Suhu pembakaran akhir wajib diisi.',
+                'suhu_pembakaran_akhir.numeric' => 'Suhu pembakaran akhir harus berupa angka.',
+                'suhu_pembakaran_akhir.min' => 'Suhu pembakaran akhir tidak boleh kurang dari 0.',
             ]);
 
-            $start = Carbon::parse($process->timestamp_mulai);
+            $startTime = Carbon::parse($process->timestamp_mulai)->setTimezone('Asia/Jakarta');
             $now = Carbon::now('Asia/Jakarta');
-            $durasi = $start->diffInMinutes($now);
-
-            Log::info("Updating duration for process", [
-                'process_id' => $id,
-                'durasi' => $durasi,
-                'timestamp_mulai' => $process->timestamp_mulai,
-                'now' => $now
-            ]);
-
-            if ($validated['kadar_air_akhir'] <= $process->kadar_air_target) {
-                $process->update([
-                    'status' => 'completed',
-                    'timestamp_selesai' => $now,
-                    'kadar_air_akhir' => $validated['kadar_air_akhir'],
-                    'suhu_gabah_akhir' => $validated['suhu_gabah_akhir'],
-                    'suhu_ruangan_akhir' => $validated['suhu_ruangan_akhir'],
-                    'durasi_aktual' => $durasi,
-                    'durasi_terlaksana' => $durasi
-                ]);
-                Log::info("Process completed automatically", ['process_id' => $id]);
-
-                SensorData::where('process_id', $id)->update(['process_id' => null]);
-
-                return response()->json(['success' => true, 'message' => 'Proses selesai secara otomatis']);
-            }
+            $durasi_terlaksana = $startTime->diffInMinutes($now);
 
             $process->update([
-                'durasi_terlaksana' => $durasi,
+                'durasi_terlaksana' => $durasi_terlaksana,
                 'kadar_air_akhir' => $validated['kadar_air_akhir'],
                 'suhu_gabah_akhir' => $validated['suhu_gabah_akhir'],
-                'suhu_ruangan_akhir' => $validated['suhu_ruangan_akhir']
+                'suhu_ruangan_akhir' => $validated['suhu_ruangan_akhir'],
+                'suhu_pembakaran_akhir' => $validated['suhu_pembakaran_akhir'],
             ]);
-            Log::info("Duration updated", ['process_id' => $id, 'durasi' => $durasi]);
-            return response()->json(['success' => true, 'message' => 'Durasi diperbarui, proses masih berjalan']);
+
+            Log::info('Drying process duration updated', [
+                'process_id' => $id,
+                'durasi_terlaksana' => $durasi_terlaksana,
+                'kadar_air_akhir' => $validated['kadar_air_akhir'],
+                'suhu_gabah_akhir' => $validated['suhu_gabah_akhir'],
+                'suhu_ruangan_akhir' => $validated['suhu_ruangan_akhir'],
+                'suhu_pembakaran_akhir' => $validated['suhu_pembakaran_akhir'],
+                'user_id' => Auth::id(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Durasi proses berhasil diperbarui',
+                'data' => [
+                    'durasi_terlaksana' => number_format($durasi_terlaksana, 2),
+                    'kadar_air_akhir' => number_format($validated['kadar_air_akhir'], 2),
+                    'suhu_gabah_akhir' => number_format($validated['suhu_gabah_akhir'], 2),
+                    'suhu_ruangan_akhir' => number_format($validated['suhu_ruangan_akhir'], 2),
+                    'suhu_pembakaran_akhir' => number_format($validated['suhu_pembakaran_akhir'], 2),
+                ]
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation error updating drying process duration', [
+                'process_id' => $id,
+                'errors' => $e->errors(),
+                'request' => $request->all(),
+                'user_id' => Auth::id(),
+            ]);
+            return response()->json(['error' => 'Validasi gagal: ' . implode(', ', array_merge(...array_values($e->errors())))], 422);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::error('Process not found or unauthorized', ['process_id' => $id, 'user_id' => Auth::id()]);
             return response()->json(['error' => 'Proses tidak ditemukan atau Anda tidak memiliki akses'], 404);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation error updating duration', [
-                'errors' => $e->errors(),
-                'request' => $request->all()
-            ]);
-            return response()->json(['error' => 'Validasi gagal: ' . implode(', ', array_map(fn($errors) => implode(', ', $errors), $e->errors()))], 422);
         } catch (\Exception $e) {
-            Log::error('Error updating duration: ' . $e->getMessage(), ['process_id' => $id]);
-            return response()->json(['error' => 'Gagal memproses: ' . $e->getMessage()], 500);
+            Log::error('Error updating drying process duration', [
+                'process_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all(),
+                'user_id' => Auth::id(),
+            ]);
+            return response()->json(['error' => 'Gagal memperbarui durasi proses: ' . $e->getMessage()], 500);
         }
     }
 }

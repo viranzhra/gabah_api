@@ -9,9 +9,10 @@ use App\Http\Controllers\Api\JenisGabahController;
 use App\Http\Controllers\Api\PrediksiController;
 use App\Http\Controllers\Api\DryingProcessController;
 use App\Http\Controllers\Api\OperatorDryingProcessController;
+use App\Http\Controllers\Api\TrainingDataController;
 
 // Rute publik (tidak memerlukan autentikasi)
-Route::post('login', [AuthController::class, 'login']);
+Route::post('login', [AuthController::class, 'login'])->name('login'); // Add name('login')
 
 // Rute yang memerlukan autentikasi
 Route::middleware('auth:sanctum')->group(function () {
@@ -26,17 +27,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/drying-process/{id}/start', [DryingProcessController::class, 'start']);
     Route::post('/drying-process/{id}/complete', [DryingProcessController::class, 'complete']);
     Route::post('/drying-process/{id}/update-duration', [DryingProcessController::class, 'updateDuration']);
+    Route::get('/drying-process/{id}', [DryingProcessController::class, 'show']);
 
     Route::get('/operator/prediksi', [OperatorDryingProcessController::class, 'index']);
     Route::post('/operator/prediksi/store', [OperatorDryingProcessController::class, 'store']);
     Route::post('/operator/drying-process/{id}/complete', [OperatorDryingProcessController::class, 'complete']);
     Route::post('/operator/drying-process/{id}/update-duration', [OperatorDryingProcessController::class, 'updateDuration']);
-
-    // Route::get('/get-sensor', [SensorController::class, 'getByDevice']);
-    // Route::post('/sensor', [SensorController::class, 'store']);
-    // Route::get('/sensor-data', [PrediksiController::class, 'sensorData']);
-    // Route::get('/devices', [DeviceController::class, 'index']);
-    // Route::get('/data-sensor', [SensorController::class, 'index']);
 
     Route::get('/roles', [RoleController::class, 'index']);
     Route::post('/roles', [RoleController::class, 'store']);
@@ -45,8 +41,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/roles/{id}', [RoleController::class, 'destroy']);
     Route::get('/roles/{id}/permissions', [RoleController::class, 'getPermissions']);
 
+    Route::get('/drying-process/error-data', [DryingProcessController::class, 'getErrorData'])->name('drying-process.error-data');
+
 });
-    Route::get('/get_sensor/realtime', [SensorController::class, 'getLatestSensorData']);
+
+
+Route::get('/training-data', [TrainingDataController::class, 'index']);
+
+Route::get('/get_sensor/realtime', [SensorController::class, 'getLatestSensorData']);
 
 Route::get('/devices', [DeviceController::class, 'index']);
 Route::post('/devices', [DeviceController::class, 'store']);
@@ -59,5 +61,3 @@ Route::get('/get-sensor', [SensorController::class, 'getByDevice']);
 Route::post('/sensor', [SensorController::class, 'store']);
 Route::get('/sensor-data', [PrediksiController::class, 'sensorData']);
 Route::get('/data-sensor', [SensorController::class, 'index']);
-    
-    

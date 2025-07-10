@@ -15,7 +15,8 @@ class SensorData extends Model
         'timestamp',
         'kadar_air_gabah',
         'suhu_gabah',
-        'suhu_ruangan'
+        'suhu_ruangan',
+        'suhu_pembakaran'
     ];
 
     public $timestamps = false;
