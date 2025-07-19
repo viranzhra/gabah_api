@@ -23,7 +23,7 @@ class SensorData extends Model
 
     public function dryingProcess()
     {
-        return $this->belongsTo(DryingProcess::class, 'process_id');
+        return $this->belongsTo(DryerProcess::class, 'process_id');
     }
 
     public function sensorDevice()

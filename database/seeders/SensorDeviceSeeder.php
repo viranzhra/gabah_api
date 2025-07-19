@@ -13,7 +13,8 @@ class SensorDeviceSeeder extends Seeder
             ['device_name' => 'tombak1', 'deskripsi' => 'Kanan', 'status' => 'aktif'],
             ['device_name' => 'tombak2', 'deskripsi' => 'Kiri', 'status' => 'aktif'],
             ['device_name' => 'tombak3', 'deskripsi' => 'Tengah Kanan', 'status' => 'aktif'],
-            ['device_name' => 'tombak4', 'deskripsi' => 'Tengah Kiri', 'status' => 'tidak_aktif'],
+            ['device_name' => 'tombak4', 'deskripsi' => 'Tengah Kiri', 'status' => 'aktif'],
+            ['device_name' => 'tombak5', 'deskripsi' => 'Dekat oven', 'status' => 'aktif'],
         ]);
     }
 }

@@ -46,9 +46,10 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             RoleSeeder::class, // Tetap panggil untuk logika tambahan
             SensorDeviceSeeder::class,
-            SensorDataSeeder::class,
+            // SensorDataSeeder::class,
             GrainTypeSeeder::class,
-            TrainingDataSeeder::class,
+            // TrainingDataSeeder::class,
+            TrainingFileExcelSeeder::class,
         ]);
     }
 }
