@@ -130,12 +130,15 @@ class SensorController extends Controller
     public function getLatestSensorData(Request $request)
     {
         try {
-            // Ambil proses aktif dari parameter atau yang ongoing
-            $activeProcess = null;
             if ($request->filled('process_id')) {
-                $activeProcess = DryerProcess::where('process_id', $request->process_id)->first();
+                $activeProcess = DryerProcess::where('process_id', $request->process_id)
+                    ->where('user_id', $request->user()->id) // filter sesuai user login
+                    ->first();
             } else {
-                $activeProcess = DryerProcess::where('status', 'ongoing')->orderByDesc('timestamp_mulai')->first();
+                $activeProcess = DryerProcess::where('status', 'ongoing')
+                    ->where('user_id', $request->user()->id) // filter sesuai user login
+                    ->orderByDesc('timestamp_mulai')
+                    ->first();
             }
 
             $processes = DryerProcess::orderBy('timestamp_mulai', 'desc')->get();
@@ -185,6 +188,7 @@ class SensorController extends Controller
                     'kadar_air_gabah' => round($s->kadar_air_gabah, 2),
                     'suhu_ruangan' => round($s->suhu_ruangan, 2),
                     'suhu_pembakaran' => round($s->suhu_pembakaran, 2),
+                    'status_pengaduk' => is_null($s->status_pengaduk) ? null : (bool) $s->status_pengaduk, // 🔹 status pengaduk
                     'timestamp' => Carbon::parse($s->timestamp)->timezone('Asia/Jakarta')->format('Y-m-d H:i:s'),
                     'process_id' => $s->process_id
                 ];
@@ -208,15 +212,20 @@ class SensorController extends Controller
                 // $activeProcess->save();
             }
 
-            $sensors = [
-                'avg_grain_temperature' => $avgGrainTemp,
-                'avg_grain_moisture' => $avgMoisture,
-                'avg_room_temperature' => $avgRoomTemp,
-                'avg_combustion_temperature' => $avgBurnTemp,
-                'latest_timestamp' => $latestTimestamp,
-                'target_moisture_achieved' => $targetAchieved,
-                'data' => $sensorArray
-            ];
+            $latestStirrerStatus = $sensorDataList->whereNotNull('status_pengaduk')->first()
+            ? (bool) $sensorDataList->sortByDesc('timestamp')->first()->status_pengaduk
+            : null;
+
+        $sensors = [
+            'avg_grain_temperature' => $avgGrainTemp,
+            'avg_grain_moisture' => $avgMoisture,
+            'avg_room_temperature' => $avgRoomTemp,
+            'avg_combustion_temperature' => $avgBurnTemp,
+            'latest_stirrer_status' => $latestStirrerStatus, // 🔹 status pengaduk terakhir
+            'latest_timestamp' => $latestTimestamp,
+            'target_moisture_achieved' => $targetAchieved,
+            'data' => $sensorArray
+        ];
 
             $dryingProcess = $activeProcess ? [
                 'drying_process' => [
@@ -236,12 +245,15 @@ class SensorController extends Controller
                 'message' => 'Tidak ada proses pengeringan aktif.'
             ];
 
-            $allProcesses = $processes->map(function ($p) {
+            $allProcesses = $processes
+            ->where('user_id', $request->user()->id)
+            ->map(function ($p) {
                 return [
                     'process_id' => $p->process_id,
                     'user_id' => $p->user_id,
                     'status' => $p->status,
-                    'started_at' => Carbon::parse($p->timestamp_mulai)->timezone('Asia/Jakarta')->format('Y-m-d H:i:s'),
+                    'started_at' => Carbon::parse($p->timestamp_mulai)
+                        ->timezone('Asia/Jakarta')->format('Y-m-d H:i:s'),
                     'kadar_air_target' => $p->kadar_air_target
                 ];
             });

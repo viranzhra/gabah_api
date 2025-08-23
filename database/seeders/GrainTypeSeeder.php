@@ -14,21 +14,21 @@ class GrainTypeSeeder extends Seeder
     {
         $grainTypes = [
             [
-                'nama_jenis' => 'Gabah Kering Panen',
-                'deskripsi' => 'Gabah dengan kadar air tinggi, baru selesai dipanen.'
+                'nama_jenis' => 'IR64',
+                'deskripsi' => 'Gabah dengan varietas padi unggul yang cepat panen, hasil tinggi, dan rasanya pulen.'
             ],
-            [
-                'nama_jenis' => 'Gabah Kering Giling',
-                'deskripsi' => 'Gabah yang siap digiling dengan kadar air yang rendah.'
-            ],
-            [
-                'nama_jenis' => 'Jagung Pipil',
-                'deskripsi' => 'Jagung yang sudah dipipil dari tongkolnya.'
-            ],
-            [
-                'nama_jenis' => 'Beras Merah',
-                'deskripsi' => 'Jenis beras dengan nutrisi tinggi dan warna kemerahan.'
-            ],
+            // [
+            //     'nama_jenis' => 'Gabah Kering Giling',
+            //     'deskripsi' => 'Gabah yang siap digiling dengan kadar air yang rendah.'
+            // ],
+            // [
+            //     'nama_jenis' => 'Jagung Pipil',
+            //     'deskripsi' => 'Jagung yang sudah dipipil dari tongkolnya.'
+            // ],
+            // [
+            //     'nama_jenis' => 'Beras Merah',
+            //     'deskripsi' => 'Jenis beras dengan nutrisi tinggi dan warna kemerahan.'
+            // ],
         ];
 
         foreach ($grainTypes as $type) {

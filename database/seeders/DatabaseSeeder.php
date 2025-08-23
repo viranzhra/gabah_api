@@ -17,14 +17,14 @@ class DatabaseSeeder extends Seeder
             ['guard_name' => 'web']
         );
         Role::firstOrCreate(
-            ['name' => 'Operator', 'guard_name' => 'web'],
+            ['name' => 'Admin Mitra', 'guard_name' => 'web'],
             ['guard_name' => 'web']
         );
 
         // Membuat akun admin
         $admin = User::factory()->create([
-            'id' => 1,
-            'name' => 'Admin User',
+            // 'id' => 1,
+            'name' => 'Administrator',
             'email' => 'admin@gmail.com',
             'password' => bcrypt('admin123'),
             'email_verified_at' => now(),
@@ -33,13 +33,13 @@ class DatabaseSeeder extends Seeder
 
         // Membuat akun operator
         $operator = User::factory()->create([
-            'id' => 2,
-            'name' => 'Syzahra',
-            'email' => 'syzahra@gmail.com',
-            'password' => bcrypt('syzahra123'),
+            // 'id' => 2,
+            'name' => 'Admin Mitra 1',
+            'email' => 'mitra1@gmail.com',
+            'password' => bcrypt('mitra123'),
             'email_verified_at' => now(),
         ]);
-        $operator->assignRole('Operator');
+        $operator->assignRole('Admin Mitra');
 
         // Panggil seeder lain
         $this->call([
@@ -50,6 +50,8 @@ class DatabaseSeeder extends Seeder
             GrainTypeSeeder::class,
             // TrainingDataSeeder::class,
             TrainingFileExcelSeeder::class,
+            KontakInfoSeeder::class,
+            PaketHargaSeeder::class,
         ]);
     }
 }

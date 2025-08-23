@@ -20,6 +20,8 @@ return new class extends Migration
             $table->float('suhu_gabah')->nullable();
             $table->float('suhu_ruangan')->nullable();
             $table->float('suhu_pembakaran')->nullable();
+
+            $table->boolean('status_pengaduk')->nullable()->default(NULL);
             $table->timestamps();
         });
     }

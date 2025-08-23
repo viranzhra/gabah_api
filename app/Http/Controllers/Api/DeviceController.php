@@ -13,7 +13,7 @@ class DeviceController extends Controller
     public function index()
     {
         try {
-            $data = SensorDevice::select('device_id', 'device_name', 'deskripsi', 'status')->get();
+            $data = SensorDevice::select('device_id', 'device_name', 'address', 'status')->get();
             return response()->json([
                 'status' => true,
                 'data' => $data
@@ -31,8 +31,8 @@ class DeviceController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'device_name' => 'required|string|max:50',
-                'deskripsi' => 'required|string|max:100',
-                'status' => 'required|in:aktif,tidak_aktif',
+                'address' => 'required|string|max:100',
+                'status' => 'required|boolean',
             ]);
 
             if ($validator->fails()) {
@@ -44,7 +44,7 @@ class DeviceController extends Controller
 
             $device = SensorDevice::create([
                 'device_name' => $request->device_name,
-                'deskripsi' => $request->deskripsi,
+                'address' => $request->address,
                 'status' => $request->status,
             ]);
 
@@ -64,7 +64,7 @@ class DeviceController extends Controller
     public function show($id)
     {
         try {
-            $device = SensorDevice::select('device_id', 'device_name', 'deskripsi', 'status')->findOrFail($id);
+            $device = SensorDevice::select('device_id', 'device_name', 'address', 'status')->findOrFail($id);
             return response()->json([
                 'status' => true,
                 'data' => $device
@@ -87,8 +87,8 @@ class DeviceController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'device_name' => 'required|string|max:50',
-                'deskripsi' => 'required|string|max:100',
-                // 'status' => 'required|in:aktif,tidak_aktif',
+                // 'address' => 'required|string|max:100',
+                // 'status' => 'required|boolean',
             ]);
 
             if ($validator->fails()) {
@@ -101,7 +101,7 @@ class DeviceController extends Controller
             $device = SensorDevice::findOrFail($id);
             $device->update([
                 'device_name' => $request->device_name,
-                'deskripsi' => $request->deskripsi,
+                // 'address' => $request->address,
                 // 'status' => $request->status,
             ]);
 
@@ -150,7 +150,7 @@ class DeviceController extends Controller
     // {
     //     try {
     //         // Check if the SensorData table exists and has data
-    //         if (SensorData::hasTable('sensor_data')) {
+    //         if (!Schema::hasTable('sensor_data')) {
     //             throw new \Exception('Tabel sensor_data tidak ditemukan.');
     //         }
 

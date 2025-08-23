@@ -16,7 +16,8 @@ class SensorData extends Model
         'kadar_air_gabah',
         'suhu_gabah',
         'suhu_ruangan',
-        'suhu_pembakaran'
+        'suhu_pembakaran',
+        'status_pengaduk'
     ];
 
     public $timestamps = false;
@@ -29,5 +30,10 @@ class SensorData extends Model
     public function sensorDevice()
     {
         return $this->belongsTo(SensorDevice::class, 'device_id', 'device_id');
+    }
+
+    public function device()
+    {
+        return $this->belongsTo(SensorDevice::class, 'device_id');
     }
 }
