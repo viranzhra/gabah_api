@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -19,14 +18,16 @@ class TrainingDataController extends Controller
                 return [
                     'measurements' => $group->measurements->map(function ($measurement) {
                         return [
-                            'GrainTemperature' => (float) $measurement->grain_temperature,
-                            'GrainMoisture' => (float) $measurement->grain_moisture,
-                            'RoomTemperature' => (float) $measurement->room_temperature,
-                            'CombustionTemperature' => (float) $measurement->combustion_temperature,
-                            'Weight' => (float) $measurement->weight
+                            'JenisGabahId' => (int) $measurement->jenis_gabah_id,
+                            'KadarAirGabah' => (float) $measurement->kadar_air_gabah,
+                            'SuhuGabah' => (float) $measurement->suhu_gabah,
+                            'SuhuRuangan' => (float) $measurement->suhu_ruangan,
+                            'SuhuPembakaran' => (float) $measurement->suhu_pembakaran,
+                            'MassaGabah' => (float) $measurement->massa_gabah,
+                            'StatusPengaduk' => (bool) $measurement->status_pengaduk,
                         ];
                     })->toArray(),
-                    'DryingTime' => (float) $group->drying_time
+                    'EstimasiMenit' => (int) $group->drying_time
                 ];
             })->toArray();
 

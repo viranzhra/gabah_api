@@ -11,6 +11,7 @@ class TrainingData extends Model
 
     protected $fillable = [
         'training_group_id',
+        'jenis_gabah_id',
         'grain_temperature',
         'grain_moisture',
         'room_temperature',

@@ -11,11 +11,13 @@ return new class extends Migration
         Schema::create('training_data', function (Blueprint $table) {
             $table->id();
             $table->foreignId('training_group_id')->constrained()->onDelete('cascade');
-            $table->float('grain_temperature');
-            $table->float('grain_moisture');
-            $table->float('room_temperature');
-            $table->float('combustion_temperature')->nullable();
-            $table->float('weight');
+            $table->foreignId('jenis_gabah_id')->constrained('grain_types', 'grain_type_id')->onDelete('restrict');
+            $table->float('kadar_air_gabah');
+            $table->float('suhu_gabah');
+            $table->float('suhu_ruangan');
+            $table->float('suhu_pembakaran')->nullable();
+            $table->float('massa_gabah');
+            $table->boolean('status_pengaduk');
             $table->timestamps();
         });
     }
