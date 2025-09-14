@@ -45,7 +45,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Registrasi berhasil.',
+                'message' => "Registrasi berhasil.\nSilahkan Login sesuai akun Anda!",
                 'data' => [
                     'token' => $token,
                     'role' => 'Admin Mitra',

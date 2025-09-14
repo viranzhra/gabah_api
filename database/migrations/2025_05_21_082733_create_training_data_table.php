@@ -9,16 +9,25 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('training_data', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('training_group_id')->constrained()->onDelete('cascade');
-            $table->foreignId('jenis_gabah_id')->constrained('grain_types', 'grain_type_id')->onDelete('restrict');
-            $table->float('kadar_air_gabah');
-            $table->float('suhu_gabah');
-            $table->float('suhu_ruangan');
-            $table->float('suhu_pembakaran')->nullable();
-            $table->float('massa_gabah');
-            $table->boolean('status_pengaduk');
+            $table->increments('training_id');
+
+
+            $table->decimal('kadar_air_gabah', 10, 7)->nullable();
+            $table->decimal('suhu_gabah', 10, 7)->nullable();
+            $table->decimal('suhu_ruangan', 10, 7)->nullable();
+            $table->decimal('suhu_pembakaran', 10, 7)->nullable();
+            $table->boolean('status_pengaduk')->default(false);
+
+            $table->decimal('durasi_aktual', 20, 7)->nullable();           // durasi aktual (menit)
+            $table->dateTime('timestamp')->nullable();
+            $table->unsignedInteger('group_id')->nullable();
+
             $table->timestamps();
+
+            $table->foreign('group_id')->references('group_id')->on('training_group')->onDelete('set null');
+
+            $table->index(['timestamp']);
+            $table->index(['group_id']);
         });
     }
 

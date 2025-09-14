@@ -127,9 +127,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/riwayat-proses', [DryerProcessController::class, 'riwayat']);
     Route::get('/sensor-detail/{process_id}', [DryerProcessController::class, 'detail']);
 
-    Route::get('/get_sensor/realtime', [SensorController::class, 'getLatestSensorData']);
 
 });
+    Route::get('/get_sensor/realtime', [SensorController::class, 'getLatestSensorData']);
+
     Route::get('/drying-process/error-data', [DryingProcessController::class, 'getErrorData'])->name('drying-process.error-data');
     Route::post('/start_drying_process', [DryerProcessController::class, 'startDryingProcess']);
 Route::post('/update_drying_process/{process_id}', [DryerProcessController::class, 'updateDryingProcess']);
@@ -207,3 +208,55 @@ Route::post('/import-training-data', [TrainingDataImportController::class, 'impo
 //         ], 500);
 //     }
 // });
+
+
+
+//////////////////////////////////////////////////////////////////////
+
+use App\Http\Controllers\Api_mobile\MobileNotificationController;
+use App\Http\Controllers\Api_mobile\MobilePredictionController;
+use App\Http\Controllers\Api_mobile\GrainTypeController;
+use App\Http\Controllers\Api_mobile\MobileTrainingDataController;
+use App\Http\Controllers\Api_mobile\RealtimeDataController;
+use App\Http\Controllers\Api_mobile\MobileDryingProcessController;
+use App\Http\Controllers\Api_mobile\SensorDevicesController;
+use Illuminate\Http\Request;
+
+Route::post('/login', [AuthController::class, 'login']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me', [AuthController::class, 'me']);
+
+    // Notifications
+    Route::get('/notifications', [MobileNotificationController::class, 'index']);
+    Route::delete('/notifications/{id}', [MobileNotificationController::class, 'destroy']);
+
+    // Prediction APIs (wajib login)
+    Route::post('/prediction/start', [MobilePredictionController::class, 'startPrediction']);
+    Route::post('/prediction/stop', [MobilePredictionController::class, 'stopPrediction']);
+    Route::post('/prediction/receive', [MobilePredictionController::class, 'receivePrediction']);
+
+    // Bed Dryers
+    Route::get('/mybed-dryers', [AuthController::class, 'myBedDryers']);
+
+    Route::get('/drying-history', [MobileDryingProcessController::class, 'getHistory']);
+    Route::get('/drying-process/{processId}', [MobileDryingProcessController::class, 'getProcessDetails']);
+    Route::post('/drying-process/validate', [MobileDryingProcessController::class, 'validateProcess']);
+
+    Route::get('/sensor-devices', [SensorDevicesController::class, 'index']);
+    Route::post('/sensor-devices/{device}/reset-delete', [SensorDevicesController::class, 'resetAndDelete']);
+});
+
+Route::post('/sensor-devices/new', [SensorDevicesController::class, 'newSensor']);
+
+Route::get('/grain-types', [GrainTypeController::class, 'index']);
+
+Route::get('/dataset', [MobileTrainingDataController::class, 'index']);
+
+Route::get('/realtime-data', [RealtimeDataController::class, 'index']);
+Route::get('/dashboard-data', [RealtimeDataController::class, 'dashboardData']);
+
+Route::post('/prediction/start', [MobilePredictionController::class, 'startPrediction']);
+Route::post('/prediction/stop', [MobilePredictionController::class, 'stopPrediction']);
+Route::post('/prediction/receive', [MobilePredictionController::class, 'receivePrediction']);

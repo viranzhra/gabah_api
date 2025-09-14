@@ -32,6 +32,7 @@ class SensorDeviceSeeder extends Seeder
         // Satu bed dryer di dalam gudang tersebut
         $bedDryer = BedDryer::firstOrCreate(
             [
+                'dryer_id' => 2,
                 'user_id'      => $owner->id,
                 'warehouse_id' => $warehouse->warehouse_id,
                 'nama'         => 'Bed Dryer Utama',
@@ -54,35 +55,35 @@ class SensorDeviceSeeder extends Seeder
             [
                 'device_id'   => 1,
                 'device_name' => 'Tombak 1',
-                'address'     => 'iot/sensor/datagabah/1',
+                'address'     => 'iot/mitra1/dryer2/1',
                 'location'    => 'Sudut Kiri Depan',
                 'status'      => true,
             ],
-            [
-                'device_id'   => 2,
-                'device_name' => 'Tombak 2',
-                'address'     => 'iot/sensor/datagabah/2',
-                'location'    => 'Sudut Kanan Depan',
-                'status'      => true,
-            ],
-            [
-                'device_id'   => 3,
-                'device_name' => 'Tombak 3',
-                'address'     => 'iot/sensor/datagabah/3',
-                'location'    => 'Sudut Kiri Belakang',
-                'status'      => true,
-            ],
-            [
-                'device_id'   => 4,
-                'device_name' => 'Tombak 4',
-                'address'     => 'iot/sensor/datagabah/4',
-                'location'    => 'Sudut Kanan Belakang',
-                'status'      => true,
-            ],
+            // [
+            //     'device_id'   => 2,
+            //     'device_name' => 'Tombak 2',
+            //     'address'     => 'iot/sensor/datagabah/2',
+            //     'location'    => 'Sudut Kanan Depan',
+            //     'status'      => true,
+            // ],
+            // [
+            //     'device_id'   => 3,
+            //     'device_name' => 'Tombak 3',
+            //     'address'     => 'iot/sensor/datagabah/3',
+            //     'location'    => 'Sudut Kiri Belakang',
+            //     'status'      => true,
+            // ],
+            // [
+            //     'device_id'   => 4,
+            //     'device_name' => 'Tombak 4',
+            //     'address'     => 'iot/sensor/datagabah/4',
+            //     'location'    => 'Sudut Kanan Belakang',
+            //     'status'      => true,
+            // ],
             [
                 'device_id'   => 5,
                 'device_name' => 'Pembakaran & Pengaduk',
-                'address'     => 'iot/sensor/pembakaran/5',
+                'address'     => 'iot/mitra1/dryer2/5',
                 'location'    => 'Pipa Blower / Pemanas',
                 'status'      => true,
             ],

@@ -7,19 +7,60 @@ use Illuminate\Database\Eloquent\Model;
 
 class BedDryer extends Model
 {
+    use HasFactory;
+
     protected $table = 'bed_dryers';
     protected $primaryKey = 'dryer_id';
     public $incrementing = true;
-    protected $keyType = 'int';
-    protected $fillable = ['warehouse_id','user_id','nama','deskripsi'];
+    public $timestamps = true;
 
-    public function user() { return $this->belongsTo(User::class, 'user_id'); }
-    public function warehouse() { return $this->belongsTo(Warehouse::class, 'warehouse_id', 'warehouse_id'); }
-    public function processes() { return $this->hasMany(DryingProcess::class, 'dryer_id', 'dryer_id'); }
+    protected $fillable = [
+        'user_id',
+        'nama',
+        'lokasi',
+        'warehouse_id',
+        'deskripsi',
+    ];
 
-    // Jika ada tabel devices (tombak) → SESUAIKAN bila beda
-    public function devices() { return $this->hasMany(Device::class, 'dryer_id', 'dryer_id'); }
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 
-    // Jika ada sensor_data → SESUAIKAN bila beda
-    public function sensorData() { return $this->hasMany(SensorData::class, 'dryer_id', 'dryer_id'); }
+    /** Owner / pemilik dryer */
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class, 'warehouse_id', 'warehouse_id');
+    }
+
+    /** Semua device pada dryer ini */
+    public function devices()
+    {
+        return $this->hasMany(SensorDevice::class, 'dryer_id', 'dryer_id');
+    }
+
+    /** Semua proses pengeringan pada dryer ini */
+    public function processes()
+    {
+        return $this->hasMany(DryingProcess::class, 'dryer_id', 'dryer_id');
+    }
+
+    /** Proses yang sedang berjalan (jika ada) */
+    public function ongoingProcess()
+    {
+        return $this->hasOne(DryingProcess::class, 'dryer_id', 'dryer_id')
+            ->where('status', 'ongoing')
+            ->latest('timestamp_mulai');
+    }
+
+    /** Scope: filter dryer milik user tertentu */
+    public function scopeByUser($query, $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
 }

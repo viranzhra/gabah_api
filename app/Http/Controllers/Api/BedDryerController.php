@@ -18,7 +18,8 @@ class BedDryerController extends Controller
         $user = $request->user();
 
         $dryers = BedDryer::where('user_id', $user->id)
-            ->get(['dryer_id', 'nama', 'deskripsi']);
+            ->with('warehouse') // Include warehouse relation
+            ->get(['dryer_id', 'warehouse_id', 'nama', 'deskripsi', 'created_at', 'updated_at']);
 
         return response()->json([
             'status' => true,
@@ -35,6 +36,7 @@ class BedDryerController extends Controller
         $validator = Validator::make($request->all(), [
             'nama' => 'required|string|max:100',
             'deskripsi' => 'nullable|string',
+            'warehouse_id' => 'nullable|exists:warehouses,warehouse_id' // Validate warehouse_id
         ]);
 
         if ($validator->fails()) {
@@ -49,6 +51,7 @@ class BedDryerController extends Controller
 
         $dryer = BedDryer::create([
             'user_id' => $user->id,
+            'warehouse_id' => $request->warehouse_id, // Add warehouse_id
             'nama' => $request->nama,
             'deskripsi' => $request->deskripsi,
         ]);
@@ -56,7 +59,7 @@ class BedDryerController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Bed dryer berhasil ditambahkan.',
-            'data' => $dryer
+            'data' => $dryer->load('warehouse') // Include warehouse relation in response
         ], 201);
     }
 
@@ -65,7 +68,7 @@ class BedDryerController extends Controller
      */
     public function show($id)
     {
-        $dryer = BedDryer::find($id);
+        $dryer = BedDryer::with('warehouse')->find($id); // Include warehouse relation
 
         if (!$dryer) {
             return response()->json([
@@ -104,6 +107,7 @@ class BedDryerController extends Controller
         $validator = Validator::make($request->all(), [
             'nama' => 'required|string|max:100',
             'deskripsi' => 'nullable|string',
+            'warehouse_id' => 'nullable|exists:warehouses,warehouse_id' // Validate warehouse_id
         ]);
 
         if ($validator->fails()) {
@@ -116,13 +120,14 @@ class BedDryerController extends Controller
 
         $dryer->update([
             'nama' => $request->nama,
-            'deskripsi' => $request->deskripsi
+            'deskripsi' => $request->deskripsi,
+            'warehouse_id' => $request->warehouse_id // Update warehouse_id
         ]);
 
         return response()->json([
             'status' => true,
             'message' => 'Bed dryer berhasil diperbarui.',
-            'data' => $dryer
+            'data' => $dryer->load('warehouse') // Include warehouse relation in response
         ]);
     }
 
