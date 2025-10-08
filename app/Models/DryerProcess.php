@@ -9,10 +9,10 @@ class DryerProcess extends Model
     protected $table = 'drying_process';
     protected $primaryKey = 'process_id';
     public $incrementing = true;
-    public $timestamps = true;
-
+    protected $keyType = 'int';
+    
     protected $fillable = [
-        'dryer_id',               // <-- ganti dari user_id ke dryer_id
+        'dryer_id',
         'grain_type_id',
         'timestamp_mulai',
         'timestamp_selesai',
@@ -22,20 +22,40 @@ class DryerProcess extends Model
         'kadar_air_target',
         'kadar_air_akhir',
         'durasi_rekomendasi',
-        'durasi_aktual',
         'durasi_terlaksana',
         'avg_estimasi_durasi',
         'status',
-        'catatan',
-        // 'lokasi',               // <-- tidak ada lagi di drying_process (lokasi ada di bed_dryers)
+        'catatan'
     ];
 
     protected $casts = [
+        'process_id' => 'integer',
+        'dryer_id' => 'integer',
+        'grain_type_id' => 'integer',
         'timestamp_mulai' => 'datetime',
         'timestamp_selesai' => 'datetime',
+        'berat_gabah_awal' => 'decimal:2',
+        'berat_gabah_akhir' => 'decimal:2',
+        'kadar_air_awal' => 'decimal:2',
+        'kadar_air_target' => 'decimal:2',
+        'kadar_air_akhir' => 'decimal:2',
+        'durasi_rekomendasi' => 'integer',
+        'durasi_terlaksana' => 'integer',
+        'avg_estimasi_durasi' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    // Accessor untuk memastikan durasi selalu integer
+    public function getDurasiTerlaksanaAttribute($value)
+    {
+        return (int) $value;
+    }
+
+    public function setDurasiTerlaksanaAttribute($value)
+    {
+        $this->attributes['durasi_terlaksana'] = (int) $value;
+    }
 
     /** Relasi ke dryer */
     public function bedDryer()

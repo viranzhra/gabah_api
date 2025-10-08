@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SensorData;
+use App\Models\SensorDevice;
 use App\Models\DryerProcess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use App\Events\SensorDataUpdated;
 
 class SensorController extends Controller
 {
@@ -87,9 +90,52 @@ class SensorController extends Controller
         ]);
     }
 
+    // public function store(Request $request)
+    // {
+    //     // Validate received data
+    //     $validator = Validator::make($request->all(), [
+    //         'sensor' => 'required|array',
+    //         'sensor.*.device_id' => 'required|exists:sensor_devices,device_id',
+    //         'sensor.*.timestamp' => 'required|date',
+    //         'sensor.*.kadar_air_gabah' => 'nullable|numeric|min:0|max:100',
+    //         'sensor.*.suhu_gabah' => 'nullable|numeric|min:0|max:100',
+    //         'sensor.*.suhu_ruangan' => 'nullable|numeric|min:0|max:100',
+    //         'sensor.*.suhu_pembakaran' => 'nullable|numeric|min:0|max:200',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'errors' => $validator->errors()
+    //         ], 422);
+    //     }
+
+    //     $sensorDataList = [];
+    //     foreach ($request->sensor as $sensor) {
+    //         // Save sensor data to database
+    //         $sensorData = SensorData::create([
+    //             'device_id' => $sensor['device_id'],
+    //             'timestamp' => $sensor['timestamp'],
+    //             'kadar_air_gabah' => $sensor['kadar_air_gabah'] ?? null,
+    //             'suhu_gabah' => $sensor['suhu_gabah'] ?? null,
+    //             'suhu_ruangan' => $sensor['suhu_ruangan'] ?? null,
+    //             'suhu_pembakaran' => $sensor['suhu_pembakaran'] ?? null,
+    //         ]);
+    //         $sensorDataList[] = $sensorData;
+    //     }
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'message' => 'Data sensor berhasil ditambahkan',
+    //         'data' => $sensorDataList
+    //     ], 201);
+    // }
+
     public function store(Request $request)
     {
-        // Validate received data
+        Log::info('Store endpoint called with payload:', $request->all());
+
+        // Validasi data yang diterima
         $validator = Validator::make($request->all(), [
             'sensor' => 'required|array',
             'sensor.*.device_id' => 'required|exists:sensor_devices,device_id',
@@ -101,31 +147,74 @@ class SensorController extends Controller
         ]);
 
         if ($validator->fails()) {
+            Log::error('Validation failed for sensor data:', ['errors' => $validator->errors()]);
             return response()->json([
                 'status' => false,
                 'errors' => $validator->errors()
             ], 422);
         }
 
-        $sensorDataList = [];
-        foreach ($request->sensor as $sensor) {
-            // Save sensor data to database
-            $sensorData = SensorData::create([
-                'device_id' => $sensor['device_id'],
-                'timestamp' => $sensor['timestamp'],
-                'kadar_air_gabah' => $sensor['kadar_air_gabah'] ?? null,
-                'suhu_gabah' => $sensor['suhu_gabah'] ?? null,
-                'suhu_ruangan' => $sensor['suhu_ruangan'] ?? null,
-                'suhu_pembakaran' => $sensor['suhu_pembakaran'] ?? null,
-            ]);
-            $sensorDataList[] = $sensorData;
-        }
+        // Ambil mapping device_id ke dryer_id untuk optimasi
+        $deviceIds = array_column($request->sensor, 'device_id');
+        $dryers = SensorDevice::whereIn('device_id', $deviceIds)
+            ->pluck('dryer_id', 'device_id')
+            ->toArray();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Data sensor berhasil ditambahkan',
-            'data' => $sensorDataList
-        ], 201);
+        $sensorDataList = [];
+        try {
+            DB::beginTransaction();
+
+            foreach ($request->sensor as $sensor) {
+                // Cari proses pengeringan aktif untuk device_id
+                $dryerId = $dryers[$sensor['device_id']] ?? null;
+                if (!$dryerId) {
+                    Log::error('Device ID not found:', ['device_id' => $sensor['device_id']]);
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Device ID tidak ditemukan: ' . $sensor['device_id']
+                    ], 422);
+                }
+
+                $process = DryerProcess::where('dryer_id', $dryerId)
+                    ->where('status', 'ongoing')
+                    ->orderByDesc('timestamp_mulai')
+                    ->first();
+
+                // Simpan data sensor ke database
+                $sensorData = SensorData::create([
+                    'device_id' => $sensor['device_id'],
+                    'process_id' => $process ? $process->process_id : null,
+                    'timestamp' => $sensor['timestamp'],
+                    'kadar_air_gabah' => $sensor['kadar_air_gabah'] ?? null,
+                    'suhu_gabah' => $sensor['suhu_gabah'] ?? null,
+                    'suhu_ruangan' => $sensor['suhu_ruangan'] ?? null,
+                    'suhu_pembakaran' => $sensor['suhu_pembakaran'] ?? null,
+                ]);
+
+                $sensorDataList[] = $sensorData;
+
+                // Trigger event broadcast
+                event(new SensorDataUpdated($sensorData));
+                Log::info('Sensor data stored and broadcasted: ' . json_encode([
+                    'sensorData' => $sensorData->toArray(),
+                    'channel' => 'drying-process.' . ($sensorData->process_id ?? 'default')
+                ]));
+            }
+
+            DB::commit();
+            return response()->json([
+                'status' => true,
+                'message' => 'Data sensor berhasil ditambahkan dan dibroadcast',
+                'data' => $sensorDataList
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error storing sensor data: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Gagal menyimpan data sensor: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function getLatestSensorData(Request $request)
@@ -139,9 +228,7 @@ class SensorController extends Controller
                 ->where('status', 'ongoing')
                 ->orderByDesc('timestamp_mulai')
                 ->first();
-        } 
-        // Fallback to latest ongoing process if no dryer_id is provided
-        else {
+        } else {
             $activeProcess = DryerProcess::where('status', 'ongoing')
                 ->orderByDesc('timestamp_mulai')
                 ->first();
@@ -187,10 +274,13 @@ class SensorController extends Controller
             $sensorQuery->where('process_id', $activeProcess->process_id);
         }
 
-        $sensorDataList = $sensorQuery->orderBy('timestamp', 'desc')->get();
+        // Ambil 10 data terakhir berdasarkan timestamp
+        $sensorDataList = $sensorQuery->orderBy('timestamp', 'desc')->take(10)->get();
 
         $sensorArray = $sensorDataList->map(function ($s) {
             return [
+                'sensor_id' => $s->sensor_id, // Tambahkan sensor_id
+                'device_id' => $s->device_id, // Tambahkan device_id
                 'device_name' => $s->sensorDevice->device_name ?? null,
                 'device_type' => $s->sensorDevice->device_type ?? null,
                 'suhu_gabah' => round($s->suhu_gabah, 2) ?? null,

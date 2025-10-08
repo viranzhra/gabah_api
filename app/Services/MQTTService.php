@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Schema;
 use PhpMqtt\Client\MqttClient;
 use PhpMqtt\Client\Exceptions\MqttClientException;
 use PhpMqtt\Client\ConnectionSettings;
+use App\Events\SensorDataUpdated;
 
 class MQTTService
 {
@@ -389,7 +390,15 @@ class MQTTService
                 'suhu_pembakaran' => isset($data['burning_temperature'])? (float) $data['burning_temperature']: null,
                 'status_pengaduk' => array_key_exists('stirrer_status', $data) ? (bool) $data['stirrer_status'] : null,
             ];
-            SensorData::create($row);
+            $sensorData = SensorData::create($row);
+
+            // Trigger event broadcast setelah data disimpan
+            // event(new SensorDataUpdated($sensorData));
+            broadcast(new SensorDataUpdated($sensorData));
+            Log::info('Sensor data stored and broadcasted from MQTT', [
+                'sensorData' => $sensorData->toArray(),
+                'channel' => 'drying-process.' . ($sensorData->process_id ?? 'default')
+            ]);
 
             // Buffer batch per-dryer
             $this->buffers[$dryerId][$deviceId] = $row;

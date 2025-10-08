@@ -6,13 +6,12 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\DryingProcess;
+use App\Models\BedDryer;
 use App\Models\SensorDevice;
+use Illuminate\Support\Facades\Log;
 
 class DashboardController extends Controller
 {
-    /**
-     * Endpoint ringkasan dashboard untuk Administrator
-     */
     public function adminSummary()
     {
         try {
@@ -20,13 +19,20 @@ class DashboardController extends Controller
             $totalMitra = User::where('id', '>', 1)->count();
 
             // 2. Proses pengeringan yang sedang berlangsung (status ongoing)
-            $ongoingProcesses = DryingProcess::with('user:id,name')
-                ->where('status', 'ongoing')
-                ->get(['process_id', 'user_id', 'lokasi', 'status']);
+            $ongoingProcesses = DryingProcess::where('status', 'ongoing')
+                ->join('bed_dryers', 'drying_process.dryer_id', '=', 'bed_dryers.dryer_id')
+                ->join('users', 'bed_dryers.user_id', '=', 'users.id')
+                ->select(
+                    'drying_process.process_id',
+                    'bed_dryers.user_id',
+                    'drying_process.status',
+                    'users.name'
+                )
+                ->get();
 
             // Ambil daftar mitra unik yang sedang punya proses berjalan
             $mitraOngoing = $ongoingProcesses
-                ->pluck('user.name')
+                ->pluck('name')
                 ->unique()
                 ->values()
                 ->all();
@@ -34,13 +40,11 @@ class DashboardController extends Controller
             // 3. Total alat terpasang (dari tabel sensor_devices)
             $totalAlat = SensorDevice::count();
 
-            // Detail alat + nama mitra
+            // 4. Detail alat + nama mitra
             $alatDetail = SensorDevice::join('bed_dryers', 'sensor_devices.dryer_id', '=', 'bed_dryers.dryer_id')
                 ->join('users', 'bed_dryers.user_id', '=', 'users.id')
-                ->get([
-                    'sensor_devices.device_name',
-                    'users.name as mitra'
-                ]);
+                ->select('sensor_devices.device_name', 'users.name as mitra')
+                ->get();
 
             return response()->json([
                 'success' => true,
@@ -52,6 +56,7 @@ class DashboardController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
+            Log::error('Admin summary error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'error' => 'Server error: ' . $e->getMessage()

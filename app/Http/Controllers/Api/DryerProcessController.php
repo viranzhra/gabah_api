@@ -208,79 +208,104 @@ class DryerProcessController extends Controller
 
     public function riwayat(Request $request)
     {
-        $query = DryerProcess::query()
-            ->join('grain_types', 'drying_process.grain_type_id', '=', 'grain_types.grain_type_id')
-            ->select(
-                'drying_process.process_id',
-                'drying_process.dryer_id',
-                'drying_process.grain_type_id',
-                'drying_process.kadar_air_target',
-                'drying_process.berat_gabah_awal',
-                'drying_process.berat_gabah_akhir',
-                'drying_process.kadar_air_awal',
-                'drying_process.kadar_air_akhir',
-                'drying_process.durasi_rekomendasi',
-                'drying_process.durasi_terlaksana',
-                'drying_process.status',
-                'drying_process.timestamp_mulai',
-                'drying_process.timestamp_selesai',
-                'drying_process.catatan',
-                'grain_types.nama_jenis'
-            );
+        try {
+            $query = DryerProcess::query()
+                ->leftJoin('grain_types', 'drying_process.grain_type_id', '=', 'grain_types.grain_type_id')
+                ->select(
+                    'drying_process.process_id',
+                    'drying_process.dryer_id',
+                    'drying_process.grain_type_id',
+                    'drying_process.kadar_air_target',
+                    'drying_process.berat_gabah_awal',
+                    'drying_process.berat_gabah_akhir',
+                    'drying_process.kadar_air_awal',
+                    'drying_process.kadar_air_akhir',
+                    'drying_process.durasi_rekomendasi',
+                    'drying_process.durasi_terlaksana',
+                    'drying_process.avg_estimasi_durasi',
+                    'drying_process.status',
+                    'drying_process.timestamp_mulai',
+                    'drying_process.timestamp_selesai',
+                    'drying_process.catatan',
+                    'grain_types.nama_jenis'
+                );
 
-        // Filter by process_id if provided
-        if ($request->has('process_id')) {
-            $query->where('drying_process.process_id', $request->input('process_id'));
-        } else {
-            $query->where('drying_process.status', 'completed');
-        }
-
-        // Filter by date if provided
-        if ($request->has('filter_tanggal')) {
-            $query->whereDate('drying_process.timestamp_mulai', $request->input('filter_tanggal'));
-        }
-
-        $data = $query->orderByDesc('drying_process.timestamp_mulai')->get();
-
-        $formatted = $data->map(function ($item) {
-            $timestampMulai = $item->timestamp_mulai
-                ? Carbon::parse($item->timestamp_mulai)->timezone('Asia/Jakarta')
-                : null;
-            $timestampSelesai = $item->timestamp_selesai
-                ? Carbon::parse($item->timestamp_selesai)->timezone('Asia/Jakarta')
-                : null;
-
-            $timestampMulaiFormatted = $timestampMulai ? $timestampMulai->format('Y-m-d H:i') : '-';
-            $timestampSelesaiFormatted = $timestampSelesai ? $timestampSelesai->format('Y-m-d H:i') : '-';
-
-            $durasiTerlaksana = '-';
-            if (!is_null($item->durasi_terlaksana) && is_numeric($item->durasi_terlaksana) && $item->durasi_terlaksana > 0) {
-                $durasiTerlaksana = $this->formatDurasi($item->durasi_terlaksana);
-            } elseif ($timestampMulai && $timestampSelesai) {
-                $minutes = $timestampMulai->diffInMinutes($timestampSelesai);
-                $durasiTerlaksana = $this->formatDurasi($minutes);
+            // Filter by process_id if provided
+            if ($request->has('process_id')) {
+                $query->where('drying_process.process_id', $request->input('process_id'));
+            } else {
+                $query->whereIn('drying_process.status', ['completed']);
             }
 
-            $durasiRekomendasi = !is_null($item->durasi_rekomendasi) && is_numeric($item->durasi_rekomendasi)
-                ? $this->formatDurasi($item->durasi_rekomendasi)
-                : '-';
+            // Filter by date if provided
+            if ($request->has('filter_tanggal')) {
+                $query->whereDate('drying_process.timestamp_mulai', $request->input('filter_tanggal'));
+            }
 
-            return [
-                'process_id' => $item->process_id,
-                'nama_jenis' => $item->nama_jenis,
-                'timestamp_mulai_mentah' => $timestampMulaiFormatted,
-                'timestamp_selesai' => $timestampSelesaiFormatted,
-                'berat_gabah_awal' => $item->berat_gabah_awal,
-                'berat_gabah_akhir' => $item->berat_gabah_akhir,
-                'durasi_rekomendasi' => $durasiRekomendasi,
-                'durasi_terlaksana' => $durasiTerlaksana,
-            ];
-        });
+            $data = $query->orderByDesc('drying_process.timestamp_mulai')->get();
 
-        return response()->json([
-            'status' => 'success',
-            'data' => $formatted
-        ]);
+            $formatted = $data->map(function ($item) {
+                $timestampMulai = $item->timestamp_mulai
+                    ? Carbon::parse($item->timestamp_mulai)->timezone('Asia/Jakarta')
+                    : null;
+                $timestampSelesai = $item->timestamp_selesai
+                    ? Carbon::parse($item->timestamp_selesai)->timezone('Asia/Jakarta')
+                    : null;
+
+                $timestampMulaiFormatted = $timestampMulai ? $timestampMulai->format('Y-m-d H:i') : '-';
+                $timestampSelesaiFormatted = $timestampSelesai ? $timestampSelesai->format('Y-m-d H:i') : '-';
+
+                $durasiTerlaksana = '-';
+                if (!is_null($item->durasi_terlaksana) && is_numeric($item->durasi_terlaksana) && $item->durasi_terlaksana > 0) {
+                    $durasiTerlaksana = $this->formatDurasi($item->durasi_terlaksana);
+                } elseif ($timestampMulai && $timestampSelesai) {
+                    $minutes = $timestampMulai->diffInMinutes($timestampSelesai);
+                    $durasiTerlaksana = $this->formatDurasi($minutes);
+                }
+
+                $durasiRekomendasi = !is_null($item->durasi_rekomendasi) && is_numeric($item->durasi_rekomendasi)
+                    ? $this->formatDurasi($item->durasi_rekomendasi)
+                    : '-';
+
+                return [
+                    'process_id' => $item->process_id,
+                    'nama_jenis' => $item->nama_jenis ?? '-',
+                    'timestamp_mulai_mentah' => $timestampMulaiFormatted,
+                    'timestamp_selesai' => $timestampSelesaiFormatted,
+                    'berat_gabah_awal' => is_numeric($item->berat_gabah_awal) ? floatval($item->berat_gabah_awal) : null,
+                    'berat_gabah_akhir' => is_numeric($item->berat_gabah_akhir) ? floatval($item->berat_gabah_akhir) : null,
+                    'kadar_air_awal' => is_numeric($item->kadar_air_awal) ? floatval($item->kadar_air_awal) : null,
+                    'kadar_air_akhir' => is_numeric($item->kadar_air_akhir) ? floatval($item->kadar_air_akhir) : null,
+                    'durasi_rekomendasi' => $durasiRekomendasi,
+                    'durasi_terlaksana' => $durasiTerlaksana,
+                    'status' => $item->status,
+                    'avg_estimasi_durasi' => is_numeric($item->avg_estimasi_durasi) ? floatval($item->avg_estimasi_durasi) : null,
+                ];
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $formatted
+            ], 200);
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error in riwayat', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan database: ' . $e->getMessage()
+            ], 500);
+        } catch (\Exception $e) {
+            Log::error('General error in riwayat', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function validateProcess(Request $request, $process_id)
@@ -294,16 +319,19 @@ class DryerProcessController extends Controller
         if ($validator->fails()) {
             Log::error('Validasi input gagal', ['errors' => $validator->errors()]);
             return response()->json([
-                'pesan' => 'Validasi gagal',
+                'status' => 'error',
+                'message' => 'Validasi gagal',
                 'errors' => $validator->errors()
             ], 422);
         }
 
         try {
-            $dryerProcess = DryerProcess::findOrFail($process_id);
+            $dryerProcess = DryerProcess::where('process_id', $process_id)
+                ->where('status', 'completed')
+                ->firstOrFail();
 
             $beratAkhir = (float) $request->berat_gabah_akhir;
-            $beratAwal = (float) ($dryerProcess->berat_gabah_awal ?? 0);
+            $beratAwal = is_numeric($dryerProcess->berat_gabah_awal) ? (float) $dryerProcess->berat_gabah_awal : 0;
 
             if ($beratAkhir > $beratAwal) {
                 $msg = 'Berat akhir tidak boleh lebih besar dari berat awal.';
@@ -314,18 +342,29 @@ class DryerProcessController extends Controller
                 ]);
 
                 return response()->json([
-                    'pesan' => 'Validasi gagal',
+                    'status' => 'error',
+                    'message' => 'Validasi gagal',
                     'errors' => [
                         'berat_gabah_akhir' => [
-                            $msg . ' (berat_gabah_awal: ' . rtrim(rtrim(number_format($beratAwal, 2, '.', ''), '0'), '.') .
-                            ', berat_gabah_akhir: ' . rtrim(rtrim(number_format($beratAkhir, 2, '.', ''), '0'), '.') . ')'
+                            $msg . ' (berat_gabah_awal: ' . number_format($beratAwal, 2) .
+                            ', berat_gabah_akhir: ' . number_format($beratAkhir, 2) . ')'
                         ]
                     ]
                 ], 422);
             }
 
+            // Hitung durasi terlaksana
+            $durasiTerlaksana = $dryerProcess->durasi_terlaksana;
+            if ($dryerProcess->timestamp_mulai && $dryerProcess->timestamp_selesai) {
+                $durasiTerlaksana = Carbon::parse($dryerProcess->timestamp_mulai)
+                    ->diffInMinutes(Carbon::parse($dryerProcess->timestamp_selesai));
+            }
+
             $dryerProcess->update([
                 'berat_gabah_akhir' => $beratAkhir,
+                'status' => 'completed',
+                'durasi_terlaksana' => $durasiTerlaksana,
+                'timestamp_selesai' => $dryerProcess->timestamp_selesai ?? Carbon::now('Asia/Jakarta'),
             ]);
 
             Log::info('Validasi berhasil', [
@@ -334,17 +373,19 @@ class DryerProcessController extends Controller
             ]);
 
             return response()->json([
-                'pesan' => 'Validasi berhasil',
+                'status' => 'success',
+                'message' => 'Validasi berhasil',
                 'data' => $dryerProcess
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            Log::error('Proses tidak ditemukan', [
+            Log::error('Proses tidak ditemukan atau bukan status ongoing', [
                 'process_id' => $process_id,
                 'error' => $e->getMessage()
             ]);
             return response()->json([
-                'pesan' => 'Proses tidak ditemukan',
-                'error' => 'Proses dengan ID tersebut tidak ada di database'
+                'status' => 'error',
+                'message' => 'Proses tidak ditemukan atau sudah selesai',
+                'error' => 'Proses dengan ID tersebut tidak ada atau bukan status ongoing'
             ], 404);
         } catch (\Illuminate\Database\QueryException $e) {
             Log::error('Gagal memvalidasi proses: Kesalahan database', [
@@ -353,8 +394,8 @@ class DryerProcessController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             return response()->json([
-                'pesan' => 'Gagal memvalidasi proses',
-                'error' => 'Kesalahan database: ' . $e->getMessage()
+                'status' => 'error',
+                'message' => 'Kesalahan database: ' . $e->getMessage()
             ], 500);
         } catch (\Exception $e) {
             Log::error('Gagal memvalidasi proses: Kesalahan umum', [
@@ -363,16 +404,40 @@ class DryerProcessController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             return response()->json([
-                'pesan' => 'Gagal memvalidasi proses',
-                'error' => $e->getMessage()
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
         }
     }
 
+    private function formatDurasi($minutes)
+    {
+        if (!is_numeric($minutes) || $minutes <= 0) {
+            return '-';
+        }
+
+        $hours = floor($minutes / 60);
+        $remainingMinutes = $minutes % 60;
+        return ($hours > 0 ? $hours . ' jam ' : '') . ($remainingMinutes > 0 ? $remainingMinutes . ' menit' : '');
+    }
+    
     public function complete(Request $request, $processId)
     {
         try {
+            Log::info("Complete process called", [
+                'process_id' => $processId,
+                'request_data' => $request->all(),
+            ]);
+
             $process = DryerProcess::where('process_id', $processId)->firstOrFail();
+            
+            Log::info("Process found", [
+                'process_id' => $process->process_id,
+                'status' => $process->status,
+                'dryer_id' => $process->dryer_id,
+                'timestamp_mulai' => $process->timestamp_mulai,
+                'timestamp_type' => gettype($process->timestamp_mulai)
+            ]);
 
             if ($process->status !== 'ongoing') {
                 Log::error("Process is not in ongoing status", [
@@ -387,69 +452,160 @@ class DryerProcessController extends Controller
                 'berat_gabah_akhir' => 'nullable|numeric|min:0|max:99999999',
             ]);
 
-            $endTime = now();
-            $startTime = Carbon::parse($process->timestamp_mulai);
+            Log::info("Validation passed", [
+                'kadar_air_akhir' => $validated['kadar_air_akhir'],
+                'kadar_air_type' => gettype($validated['kadar_air_akhir']),
+                'berat_gabah_akhir' => $validated['berat_gabah_akhir'] ?? null
+            ]);
+
+            // ✅ PERBAIKAN: Handle timestamp_mulai dengan aman
+            $timestampMulai = $process->timestamp_mulai;
+            if (!$timestampMulai) {
+                Log::error("No start timestamp found", ['process_id' => $processId]);
+                return response()->json(['error' => 'Timestamp mulai tidak ditemukan'], 400);
+            }
+
+            // Parse timestamp dengan Carbon - handle string atau Carbon instance
+            $startTime = Carbon::parse($timestampMulai);
+            $endTime = Carbon::now();
+
+            Log::info("Timestamps parsed", [
+                'process_id' => $processId,
+                'start_time_raw' => $timestampMulai,
+                'start_time_parsed' => $startTime->toDateTimeString(),
+                'end_time' => $endTime->toDateTimeString(),
+                'start_time_type' => gettype($startTime)
+            ]);
 
             if ($endTime->lt($startTime)) {
                 Log::warning("End time is earlier than start time; forcing equal times.", [
                     'process_id' => $processId,
-                    'timestamp_mulai' => $process->timestamp_mulai,
+                    'timestamp_mulai' => $timestampMulai,
                     'calculated_selesai' => $endTime->toDateTimeString(),
                 ]);
                 $endTime = $startTime->copy();
             }
 
-            $durasiTerlaksana = max(0, $startTime->diffInMinutes($endTime, false));
+            // ✅ PERBAIKAN: Cast durasi ke integer
+            $durasiTerlaksanaFloat = $startTime->diffInMinutes($endTime, false);
+            $durasiTerlaksana = (int) max(0, $durasiTerlaksanaFloat);
 
+            Log::info("Duration calculation", [
+                'process_id' => $processId,
+                'durasi_float' => $durasiTerlaksanaFloat,
+                'durasi_integer' => $durasiTerlaksana,
+                'durasi_type' => gettype($durasiTerlaksana)
+            ]);
+
+            // Update data dengan type casting
             $updateData = [
-                'kadar_air_akhir' => $validated['kadar_air_akhir'],
-                'timestamp_selesai' => $endTime,
+                'kadar_air_akhir' => (float) $validated['kadar_air_akhir'],
+                'timestamp_selesai' => $endTime->toDateTimeString(), // ✅ Convert ke string sejak awal
                 'durasi_terlaksana' => $durasiTerlaksana,
                 'status' => 'completed',
             ];
 
             if (array_key_exists('berat_gabah_akhir', $validated)) {
-                $updateData['berat_gabah_akhir'] = $validated['berat_gabah_akhir'];
+                $updateData['berat_gabah_akhir'] = (float) $validated['berat_gabah_akhir'];
             }
 
+            Log::info("Update data prepared", [
+                'process_id' => $processId,
+                'update_data' => $updateData,
+                'types' => array_map('gettype', $updateData)
+            ]);
+
+            // Update process
             $process->update($updateData);
 
-            $latestSensorData = SensorData::where('process_id', $processId)
-                ->latest('timestamp')
-                ->first();
+            // ✅ PERBAIKAN: Refresh model
+            $updatedProcess = $process->fresh();
+
+            Log::info("Process updated successfully", [
+                'process_id' => $processId,
+                'new_status' => $updatedProcess->status,
+                'timestamp_selesai_raw' => $updatedProcess->timestamp_selesai,
+                'timestamp_selesai_type' => gettype($updatedProcess->timestamp_selesai),
+                'kadar_air_akhir' => $updatedProcess->kadar_air_akhir,
+                'durasi_terlaksana' => $updatedProcess->durasi_terlaksana,
+                'durasi_type' => gettype($updatedProcess->durasi_terlaksana)
+            ]);
+
+            // Ambil latest sensor data dengan error handling
+            $latestSensorData = null;
+            try {
+                $latestSensorData = SensorData::where('process_id', $processId)
+                    ->orderBy('timestamp', 'desc')
+                    ->first();
+            } catch (\Exception $sensorErr) {
+                Log::warning("Failed to get latest sensor data", [
+                    'process_id' => $processId,
+                    'error' => $sensorErr->getMessage()
+                ]);
+            }
+
+            // ✅ PERBAIKAN: Format response dengan safe datetime handling
+            $timestampSelesaiFormatted = null;
+            if ($updatedProcess->timestamp_selesai) {
+                // Handle string atau Carbon instance
+                if ($updatedProcess->timestamp_selesai instanceof Carbon) {
+                    $timestampSelesaiFormatted = $updatedProcess->timestamp_selesai->toDateTimeString();
+                } else {
+                    // Jika sudah string, validasi format dan format ulang jika perlu
+                    $timestampSelesaiFormatted = Carbon::parse($updatedProcess->timestamp_selesai)->toDateTimeString();
+                }
+            }
+
+            $responseData = [
+                'process_id' => (int) $updatedProcess->process_id,
+                'kadar_air_akhir' => (float) $updatedProcess->kadar_air_akhir,
+                'timestamp_selesai' => $timestampSelesaiFormatted,
+                'durasi_terlaksana' => (int) $updatedProcess->durasi_terlaksana,
+                'status' => $updatedProcess->status,
+            ];
+
+            // Sensor data dengan safe casting
+            if ($latestSensorData) {
+                $sensorTimestamp = null;
+                if ($latestSensorData->timestamp) {
+                    if ($latestSensorData->timestamp instanceof Carbon) {
+                        $sensorTimestamp = $latestSensorData->timestamp->toDateTimeString();
+                    } else {
+                        $sensorTimestamp = Carbon::parse($latestSensorData->timestamp)->toDateTimeString();
+                    }
+                }
+
+                $responseData['latest_sensor_data'] = [
+                    'kadar_air_gabah' => (float) ($latestSensorData->kadar_air_gabah ?? 0),
+                    'suhu_gabah' => (float) ($latestSensorData->suhu_gabah ?? 0),
+                    'suhu_ruangan' => (float) ($latestSensorData->suhu_ruangan ?? 0),
+                    'suhu_pembakaran' => $latestSensorData->suhu_pembakaran ? (float) $latestSensorData->suhu_pembakaran : null,
+                    'timestamp' => $sensorTimestamp,
+                ];
+            }
 
             Log::info("Drying process completed", [
                 'process_id' => $processId,
-                'updated_data' => $process->toArray(),
-                'latest_sensor_data' => $latestSensorData ? $latestSensorData->toArray() : null,
+                'response_data' => $responseData,
                 'request_data' => $request->all()
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Proses pengeringan selesai',
-                'data' => [
-                    'process_id' => $process->process_id,
-                    'kadar_air_akhir' => $process->kadar_air_akhir,
-                    'timestamp_selesai' => $process->timestamp_selesai,
-                    'durasi_terlaksana' => $process->durasi_terlaksana,
-                    'status' => $process->status,
-                    'latest_sensor_data' => $latestSensorData ? [
-                        'kadar_air_gabah' => $latestSensorData->kadar_air_gabah,
-                        'suhu_gabah' => $latestSensorData->suhu_gabah,
-                        'suhu_ruangan' => $latestSensorData->suhu_ruangan,
-                        'suhu_pembakaran' => $latestSensorData->suhu_pembakaran,
-                        'timestamp' => $latestSensorData->timestamp,
-                    ] : null,
-                ]
+                'data' => $responseData
             ], 200);
+
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error("Validation failed in complete process", [
                 'process_id' => $processId,
                 'errors' => $e->errors(),
                 'request_data' => $request->all()
             ]);
-            return response()->json(['error' => $e->errors()], 422);
+            return response()->json([
+                'error' => 'Validasi gagal',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::error("Process not found", [
                 'process_id' => $processId,
@@ -460,10 +616,15 @@ class DryerProcessController extends Controller
             Log::error("Failed to complete process", [
                 'process_id' => $processId,
                 'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
                 'trace' => $e->getTraceAsString(),
                 'request_data' => $request->all()
             ]);
-            return response()->json(['error' => 'Gagal menyelesaikan proses: ' . $e->getMessage()], 500);
+            return response()->json([
+                'error' => 'Gagal menyelesaikan proses: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -503,14 +664,133 @@ class DryerProcessController extends Controller
         return response()->json(['data' => $process], 200);
     }
 
-    private function formatDurasi($menit)
+    // private function formatDurasi($menit)
+    // {
+    //     if (!is_numeric($menit) || $menit < 0) {
+    //         return '-';
+    //     }
+    //     $jam = floor($menit / 60);
+    //     $sisaMenit = $menit % 60;
+    //     return $jam . ' jam ' . $sisaMenit . ' menit';
+    // }
+
+    public function detail(Request $request, $process_id)
     {
-        if (!is_numeric($menit) || $menit < 0) {
-            return '-';
+        $process = DryerProcess::find($process_id);
+        if (!$process) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Process not found'
+            ], 404);
         }
-        $jam = floor($menit / 60);
-        $sisaMenit = $menit % 60;
-        return $jam . ' jam ' . $sisaMenit . ' menit';
+
+        $estimations = PredictionEstimation::where('process_id', $process_id)
+            ->select('id', 'process_id', 'estimasi_durasi', 'timestamp')
+            ->orderByDesc('timestamp') // ✅ urutkan dari terbaru
+            ->get();
+
+        $sensorData = SensorData::where('process_id', $process_id)
+            ->join('sensor_devices', 'sensor_data.device_id', '=', 'sensor_devices.device_id')
+            ->select(
+                'sensor_data.sensor_id',
+                'sensor_data.process_id',
+                'sensor_data.device_id',
+                'sensor_data.timestamp',
+                'sensor_data.kadar_air_gabah',
+                'sensor_data.suhu_gabah',
+                'sensor_data.suhu_ruangan',
+                'sensor_data.suhu_pembakaran',
+                'sensor_data.status_pengaduk',
+                'sensor_devices.device_name'
+            )
+            ->get()
+            ->groupBy(function ($item) {
+                return Carbon::parse($item->timestamp)->timezone('Asia/Jakarta')->format('Y-m-d H:i:s');
+            });
+
+        $formatted = collect();
+        $interval = $estimations->count(); // ✅ dimulai dari angka terbesar
+
+        foreach ($estimations as $estimation) {
+            $estimationTimestamp = Carbon::parse($estimation->timestamp)->timezone('Asia/Jakarta')->format('Y-m-d H:i:s');
+
+            if (!$sensorData->has($estimationTimestamp)) {
+                $interval--; // tetap kurangi agar interval tetap konsisten
+                continue;
+            }
+
+            $matchedSensors = $sensorData[$estimationTimestamp];
+
+            $tombak = [];
+            $pembakaran_pengaduk = [];
+
+            foreach ($matchedSensors as $sensor) {
+                $sensorFormatted = [
+                    'sensor_id' => $sensor->sensor_id,
+                    'timestamp' => $estimationTimestamp,
+                    'device_name' => $sensor->device_name
+                ];
+
+                if (!is_null($sensor->kadar_air_gabah) || !is_null($sensor->suhu_gabah) || !is_null($sensor->suhu_ruangan)) {
+                    $sensorFormatted['kadar_air_gabah'] = $sensor->kadar_air_gabah ?? '-';
+                    $sensorFormatted['suhu_gabah'] = $sensor->suhu_gabah ?? '-';
+                    $sensorFormatted['suhu_ruangan'] = $sensor->suhu_ruangan ?? '-';
+                    $tombak[] = $sensorFormatted;
+                }
+
+                if (!is_null($sensor->suhu_pembakaran) || !is_null($sensor->status_pengaduk)) {
+                    $sensorFormatted['suhu_pembakaran'] = $sensor->suhu_pembakaran ?? '-';
+                    $sensorFormatted['status_pengaduk'] = !is_null($sensor->status_pengaduk)
+                        ? ($sensor->status_pengaduk ? 'Aktif' : 'Nonaktif')
+                        : '-';
+                    $pembakaran_pengaduk[] = $sensorFormatted;
+                }
+            }
+
+            if (empty($tombak) && empty($pembakaran_pengaduk)) {
+                $interval--; // tetap kurangi walau tidak dipush
+                continue;
+            }
+
+            $formatted->push([
+                'interval' => $interval--,
+                'estimation_id' => $estimation->id,
+                'process_id' => $estimation->process_id,
+                'estimasi_durasi' => round($estimation->estimasi_durasi) . ' menit',
+                'timestamp' => $estimationTimestamp,
+                'suhu_pembakaran' => $pembakaran_pengaduk[0]['suhu_pembakaran'] ?? '-',
+                'status_pengaduk' => $pembakaran_pengaduk[0]['status_pengaduk'] ?? '-',
+                'suhu_ruangan' => $tombak[0]['suhu_ruangan'] ?? '-',
+                'kadar_air_gabah' => $tombak[0]['kadar_air_gabah'] ?? '-',
+                'suhu_gabah' => $tombak[0]['suhu_gabah'] ?? '-',
+                'kadar_air_rata' => $this->calculateAverageKadarAir($tombak),
+                'sensor_data' => [
+                    'tombak' => $tombak,
+                    'pembakaran_pengaduk' => $pembakaran_pengaduk
+                ],
+                'has_tombak' => !empty($tombak),
+                'has_pembakaran' => !empty($pembakaran_pengaduk),
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $formatted->values() // ✅ urutan dari besar ke kecil
+        ]);
     }
 
+    private function calculateAverageKadarAir($tombak)
+    {
+        $total = 0;
+        $count = 0;
+
+        foreach ($tombak as $item) {
+            if (is_numeric($item['kadar_air_gabah'])) {
+                $total += $item['kadar_air_gabah'];
+                $count++;
+            }
+        }
+
+        return $count > 0 ? round($total / $count, 2) : '-';
+    }
 }

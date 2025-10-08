@@ -29,6 +29,9 @@ use App\Http\Controllers\Api\BedDryerController;
 use App\Http\Controllers\Api\WarehouseController;
 use App\Http\Controllers\Api\DashboardController;
 
+use Illuminate\Support\Facades\Broadcast;
+
+
 Route::get('/dashboard/admin-summary', [DashboardController::class, 'adminSummary']);
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -36,6 +39,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login'])->name('login'); // Add name('login')
 
 Route::get('/paket-harga', [PaketHargaController::class, 'index']);
+Route::put('/paket-harga/{id}', [PaketHargaController::class, 'update']);
 
     // Route::get('/ongoing-process', [SSEController::class, 'getOngoingProcess']); // baru
     Route::get('/ongoing', [SSEController::class, 'ongoing']); 
@@ -49,7 +53,9 @@ Route::get('/paket-harga', [PaketHargaController::class, 'index']);
 
 // Rute yang memerlukan autentikasi
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/ongoing-process', [SSEController::class, 'getOngoingProcess']);
+    Broadcast::routes();
+
+    // Route::get('/ongoing-process', [SSEController::class, 'getOngoingProcess']);
 
     Route::get('/warehouses', [WarehouseController::class, 'index'])
         ->name('warehouses.index');
@@ -93,7 +99,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pesanan/store', [PesananController::class, 'store']);
     Route::put('/pesanan/{id}/status', [PesananController::class, 'updateStatus']);
 
-    // Route::get('/jenis-gabah', [JenisGabahController::class, 'index']);
+    Route::get('/jenis-gabah', [JenisGabahController::class, 'index']);
     Route::get('/jenis-gabah/{id}', [JenisGabahController::class, 'show']);
     Route::post('/jenis-gabah', [JenisGabahController::class, 'store']);
     Route::put('/jenis-gabah/{id}', [JenisGabahController::class, 'update']);
@@ -131,7 +137,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
     Route::get('/get_sensor/realtime', [SensorController::class, 'getLatestSensorData']);
 
-    Route::get('/drying-process/error-data', [DryingProcessController::class, 'getErrorData'])->name('drying-process.error-data');
+    // Route::get('/drying-process/error-data', [DryingProcessController::class, 'getErrorData'])->name('drying-process.error-data');
     Route::post('/start_drying_process', [DryerProcessController::class, 'startDryingProcess']);
 Route::post('/update_drying_process/{process_id}', [DryerProcessController::class, 'updateDryingProcess']);
 Route::get('/drying-process', [DryerProcessController::class, 'index']);
@@ -142,7 +148,7 @@ Route::get('/drying-process/{process_id}', [DryerProcessController::class, 'show
 Route::post('/save_prediction', [DryerProcessController::class, 'savePrediction']);
 Route::get('/roles', [RoleController::class, 'index']);
 
-Route::get('/jenis-gabah', [JenisGabahController::class, 'index']);
+// Route::get('/jenis-gabah', [JenisGabahController::class, 'index']);
 
 Route::get('/training-data', [TrainingDataController::class, 'index']);
 

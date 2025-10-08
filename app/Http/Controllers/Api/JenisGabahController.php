@@ -6,13 +6,16 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\GrainType;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 
 class JenisGabahController extends Controller
 {
     public function index()
     {
         try {
-            $data = GrainType::select('grain_type_id', 'nama_jenis', 'deskripsi')->get();
+            $data = GrainType::where('user_id', Auth::id())
+                             ->select('grain_type_id', 'nama_jenis', 'deskripsi')
+                             ->get();
             return response()->json([
                 'status' => true,
                 'data' => $data
@@ -28,7 +31,8 @@ class JenisGabahController extends Controller
     public function show($id)
     {
         try {
-            $item = GrainType::find($id);
+            $item = GrainType::where('user_id', Auth::id())
+                             ->find($id);
             if (!$item) {
                 return response()->json([
                     'status' => false,
@@ -64,6 +68,7 @@ class JenisGabahController extends Controller
             }
 
             $item = GrainType::create([
+                'user_id' => Auth::id(),
                 'nama_jenis' => $request->nama_jenis,
                 'deskripsi' => $request->deskripsi,
             ]);
@@ -84,7 +89,8 @@ class JenisGabahController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            $item = GrainType::find($id);
+            $item = GrainType::where('user_id', Auth::id())
+                             ->find($id);
             if (!$item) {
                 return response()->json([
                     'status' => false,
@@ -126,7 +132,8 @@ class JenisGabahController extends Controller
     public function destroy($id)
     {
         try {
-            $item = GrainType::find($id);
+            $item = GrainType::where('user_id', Auth::id())
+                             ->find($id);
             if (!$item) {
                 return response()->json([
                     'status' => false,

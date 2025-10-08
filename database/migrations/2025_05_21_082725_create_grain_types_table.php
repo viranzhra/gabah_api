@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('grain_types', function (Blueprint $table) {
             $table->id('grain_type_id');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('nama_jenis', 100);
             $table->text('deskripsi')->nullable();
             $table->timestamps();

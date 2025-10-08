@@ -25,7 +25,9 @@ class PesananController extends Controller
                     return [
                         'id' => $item->id,
                         'user_name' => $item->user->name ?? 'N/A',
+                        'user_email' => $item->user->email ?? 'N/A',
                         'paket_name' => $item->paketHarga->nama_paket ?? 'N/A',
+                        'paket_harga' => $item->paketHarga->harga ?? 'N/A',
                         'alamat' => $item->alamat,
                         'catatan' => $item->catatan ?? '-',
                         'bukti_pembayaran' => asset('storage/' . $item->bukti_pembayaran),
