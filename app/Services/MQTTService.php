@@ -13,6 +13,7 @@ use PhpMqtt\Client\MqttClient;
 use PhpMqtt\Client\Exceptions\MqttClientException;
 use PhpMqtt\Client\ConnectionSettings;
 use App\Events\SensorDataUpdated;
+use App\Http\Controllers\Api\SensorController;
 
 class MQTTService
 {
@@ -392,9 +393,14 @@ class MQTTService
             ];
             $sensorData = SensorData::create($row);
 
-            // Trigger event broadcast setelah data disimpan
-            // event(new SensorDataUpdated($sensorData));
-            broadcast(new SensorDataUpdated($sensorData));
+            $controller = app(SensorController::class);
+            $response = $controller->getLatestSensorData(new \Illuminate\Http\Request([
+                'dryer_id' => $dryerId,
+            ]));
+            $payload = $response->getData(true);
+            event(new SensorDataUpdated($dryerId, $payload));
+
+            // broadcast(new SensorDataUpdated($sensorData));
             Log::info('Sensor data stored and broadcasted from MQTT', [
                 'sensorData' => $sensorData->toArray(),
                 'channel' => 'drying-process.' . ($sensorData->process_id ?? 'default')

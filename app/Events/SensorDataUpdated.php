@@ -2,33 +2,27 @@
 
 namespace App\Events;
 
-use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class SensorDataUpdated
+class SensorDataUpdated implements ShouldBroadcast
 {
-    use Dispatchable, SerializesModels;
+    use SerializesModels;
 
-    public $sensorData;
+    public $dryerId;
+    public $payload;
 
-    public function __construct($sensorData)
+    public function __construct($dryerId, $payload)
     {
-        $this->sensorData = $sensorData;
+        $this->dryerId = $dryerId;
+        $this->payload = $payload;
     }
 
     public function broadcastOn()
     {
-        // Validasi process_id
-        if (empty($this->sensorData->process_id)) {
-            Log::warning('SensorDataUpdated: process_id kosong atau tidak valid', [
-                'sensorData' => $this->sensorData
-            ]);
-            return []; // Tidak mengirim event jika process_id tidak valid
-        }
-
-        return new PrivateChannel('drying-process.' . $this->sensorData->process_id);
+        return new Channel('drying-process.' . $this->dryerId);
     }
 
     public function broadcastAs()
@@ -36,35 +30,36 @@ class SensorDataUpdated
         return 'sensor-updated';
     }
 
-    public function broadcastWith()
-    {
-        // Validasi data sensor
-        $requiredFields = ['process_id', 'device_id', 'timestamp', 'suhu_pembakaran', 'kadar_air_gabah', 'suhu_gabah', 'suhu_ruangan', 'status_pengaduk'];
-        foreach ($requiredFields as $field) {
-            if (!isset($this->sensorData->$field) || is_null($this->sensorData->$field)) {
-                Log::warning("SensorDataUpdated: Field $field tidak tersedia atau null", [
-                    'sensorData' => $this->sensorData
-                ]);
-                return []; // Kembalikan array kosong untuk mencegah event dikirim
-            }
-        }
+    // private function getSensorDataField($field, $default = null)
+    // {
+    //     // Tangani jika sensorData adalah array atau objek
+    //     if (is_array($this->sensorData) && isset($this->sensorData[$field])) {
+    //         return $this->sensorData[$field];
+    //     } elseif (is_object($this->sensorData) && isset($this->sensorData->$field)) {
+    //         return $this->sensorData->$field;
+    //     }
+    //     Log::warning("SensorDataUpdated: Field $field tidak tersedia", [
+    //         'sensorData' => $this->sensorData
+    //     ]);
+    //     return $default;
+    // }
 
-        // Log data yang akan dikirim
-        Log::info('Mengirim event SensorDataUpdated', [
-            'process_id' => $this->sensorData->process_id,
-            'sensorData' => $this->sensorData
-        ]);
+    // public function broadcastWith()
+    // {
+    //     $data = [
+    //         'process_id' => $this->getSensorDataField('process_id', 'default'),
+    //         'dryer_id' => $this->getSensorDataField('device_id', 'unknown'),
+    //         'device_name' => $this->getSensorDataField('device_id', 'Unknown Device'),
+    //         'kadar_air_gabah' => $this->getSensorDataField('kadar_air_gabah') ? (float) $this->getSensorDataField('kadar_air_gabah') : null,
+    //         'suhu_gabah' => $this->getSensorDataField('suhu_gabah') ? (float) $this->getSensorDataField('suhu_gabah') : null,
+    //         'suhu_ruangan' => $this->getSensorDataField('suhu_ruangan') ? (float) $this->getSensorDataField('suhu_ruangan') : null,
+    //         'suhu_pembakaran' => $this->getSensorDataField('suhu_pembakaran') ? (float) $this->getSensorDataField('suhu_pembakaran') : null,
+    //         'timestamp' => $this->getSensorDataField('timestamp', now()->toDateTimeString()),
+    //         'latest_stirrer_status' => $this->getSensorDataField('status_pengaduk', 'unknown')
+    //     ];
 
-        return [
-            'process_id' => $this->sensorData->process_id,
-            'dryer_id' => $this->sensorData->device_id, // Ubah device_id menjadi dryer_id
-            'device_name' => $this->sensorData->device_id, // Sertakan device_name untuk kompatibilitas
-            'kadar_air_gabah' => (float) $this->sensorData->kadar_air_gabah,
-            'suhu_gabah' => (float) $this->sensorData->suhu_gabah,
-            'suhu_ruangan' => (float) $this->sensorData->suhu_ruangan,
-            'suhu_pembakaran' => (float) $this->sensorData->suhu_pembakaran,
-            'timestamp' => $this->sensorData->timestamp,
-            'latest_stirrer_status' => $this->sensorData->status_pengaduk // Ubah status_pengaduk menjadi latest_stirrer_status
-        ];
-    }
+    //     Log::info('Mengirim event SensorDataUpdated', $data);
+
+    //     return $data;
+    // }
 }
