@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\DeviceController;
@@ -55,6 +56,12 @@ Route::put('/paket-harga/{id}', [PaketHargaController::class, 'update']);
 Route::middleware('auth:sanctum')->group(function () {
     Broadcast::routes();
 
+    Route::get('/bed-dryers', [BedDryerController::class, 'index']);
+    Route::post('/bed-dryers/store', [BedDryerController::class, 'store']);
+    Route::get('/bed-dryers/{id}', [BedDryerController::class, 'show']);
+    Route::put('/bed-dryers/{id}', [BedDryerController::class, 'update']);
+    Route::delete('/bed-dryers/{id}', [BedDryerController::class, 'destroy']);
+
     // Route::get('/ongoing-process', [SSEController::class, 'getOngoingProcess']);
 
     Route::get('/warehouses', [WarehouseController::class, 'index'])
@@ -77,12 +84,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/warehouses/store', [WarehouseController::class, 'store'])
     ->name('warehouses.store');
-
-    Route::get('/bed-dryers', [BedDryerController::class, 'index']);
-    Route::post('/bed-dryers/store', [BedDryerController::class, 'store']);
-    Route::get('/bed-dryers/{id}', [BedDryerController::class, 'show']);
-    Route::put('/bed-dryers/{id}', [BedDryerController::class, 'update']);
-    Route::delete('/bed-dryers/{id}', [BedDryerController::class, 'destroy']);
 
 
     Route::get('/kontak', [KontakController::class, 'showContactInfo']);
@@ -132,8 +133,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/update', [ProfileController::class, 'update']);
     Route::get('/riwayat-proses', [DryerProcessController::class, 'riwayat']);
     Route::get('/sensor-detail/{process_id}', [DryerProcessController::class, 'detail']);
-
-
 });
     Route::get('/get_sensor/realtime', [SensorController::class, 'getLatestSensorData']);
 
@@ -226,7 +225,6 @@ use App\Http\Controllers\Api_mobile\MobileTrainingDataController;
 use App\Http\Controllers\Api_mobile\RealtimeDataController;
 use App\Http\Controllers\Api_mobile\MobileDryingProcessController;
 use App\Http\Controllers\Api_mobile\SensorDevicesController;
-use Illuminate\Http\Request;
 
 Route::post('/login', [AuthController::class, 'login']);
 
