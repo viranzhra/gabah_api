@@ -266,7 +266,7 @@ class RealtimeDataController extends Controller
                 $moisture = $grainT = $roomT = $burnT = [];
 
                 foreach ($sensorRows as $row) {
-                    $label = Carbon::parse($row->timestamp)->format('H:i:s');
+                    $label = Carbon::parse($row->timestamp)->format('i:s');
 
                     if (!is_null($row->kadar_air_gabah))
                         $moisture[] = ['time' => $label, 'data' => number_format($row->kadar_air_gabah, 2, '.', '')];
