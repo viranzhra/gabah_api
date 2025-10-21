@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Schema;
 use PhpMqtt\Client\MqttClient;
 use PhpMqtt\Client\Exceptions\MqttClientException;
 use PhpMqtt\Client\ConnectionSettings;
+use App\Events\DashboardUpdated;
+use App\Events\RealtimeDataUpdated;
+use App\Http\Controllers\Api_mobile\RealtimeDataController;
 use App\Events\SensorDataUpdated;
 use App\Http\Controllers\Api\SensorController;
 
@@ -346,7 +349,7 @@ class MQTTService
     {
         if (fnmatch('iot/*/*/*/connect', $topic)) return;
 
-        Log::info('Received MQTT message', ['topic' => $topic, 'message' => $message]);
+        // Log::info('Received MQTT message', ['topic' => $topic, 'message' => $message]);
 
         try {
             $meta = $this->topicMap[$topic] ?? null;
@@ -391,20 +394,48 @@ class MQTTService
                 'suhu_pembakaran' => isset($data['burning_temperature'])? (float) $data['burning_temperature']: null,
                 'status_pengaduk' => array_key_exists('stirrer_status', $data) ? (bool) $data['stirrer_status'] : null,
             ];
-            $sensorData = SensorData::create($row);
+            SensorData::create($row);
 
+            // ====== broadcast Realtime ======
+            $controller = app(RealtimeDataController::class);
+            $response = $controller->index(new \Illuminate\Http\Request([
+                'dryer_id' => $dryerId,
+            ]));
+            $payload = $response->getData(true);
+
+            if (!empty($payload['now_sensors']['data']) ||
+                !empty($payload['initial_sensors']['data']) ||
+                !empty($payload['drying_process'])) {
+
+                event(new RealtimeDataUpdated($dryerId, $payload));
+            } else {
+                Log::info("Skip RealtimeDataUpdated broadcast dryer {$dryerId}, payload kosong");
+            }
+
+            // Trigger broadcast Dashboard
+            if ($dryingProcess && in_array($dryingProcess->status, ['pending', 'ongoing'])) {
+                $controller = new RealtimeDataController();
+                $request = new \Illuminate\Http\Request(['dryer_id' => $dryerId]);
+                $dashboardData = $controller->dashboardData($request)->getData(true);
+
+                if (!empty($dashboardData['moisture_data']) ||
+                    !empty($dashboardData['grain_temperature_data']) ||
+                    !empty($dashboardData['room_temperature_data']) ||
+                    !empty($dashboardData['burning_temperature_data'])) {
+                    
+                    event(new DashboardUpdated($dryerId, $dashboardData));
+                } else {
+                    // Log::info("Skip broadcast dryer {$dryerId}, data kosong");
+                }
+            }
+
+            // BC for Web
             $controller = app(SensorController::class);
             $response = $controller->getLatestSensorData(new \Illuminate\Http\Request([
                 'dryer_id' => $dryerId,
             ]));
             $payload = $response->getData(true);
             event(new SensorDataUpdated($dryerId, $payload));
-
-            // broadcast(new SensorDataUpdated($sensorData));
-            Log::info('Sensor data stored and broadcasted from MQTT', [
-                'sensorData' => $sensorData->toArray(),
-                'channel' => 'drying-process.' . ($sensorData->process_id ?? 'default')
-            ]);
 
             // Buffer batch per-dryer
             $this->buffers[$dryerId][$deviceId] = $row;
@@ -415,6 +446,7 @@ class MQTTService
             if (!empty($expectedDevices) && $this->hasAllDevices($expectedDevices, $gotDevices)) {
                 if ($this->isBufferFresh($this->buffers[$dryerId])) {
                     $this->processAndSendData($dryingProcess, $dryerId);
+                    Log::warning('Processed batch for dryer '.$dryerId);
                 } else {
                     $this->buffers[$dryerId] = [];
                 }
@@ -452,7 +484,17 @@ class MQTTService
             if (is_null($dryingProcess->grain_type_id)
                 || is_null($dryingProcess->berat_gabah_awal)
                 || is_null($dryingProcess->kadar_air_target)) {
+
+                $missing = [];
+                if (is_null($dryingProcess->grain_type_id))   $missing[] = 'grain_type_id';
+                if (is_null($dryingProcess->berat_gabah_awal)) $missing[] = 'berat_gabah_awal';
+                if (is_null($dryingProcess->kadar_air_target)) $missing[] = 'kadar_air_target';
+
                 $this->buffers[$dryerId] = [];
+                Log::warning('DryingProcess missing required fields: ' . implode(', ', $missing), [
+                    'process_id' => $dryingProcess->process_id ?? null,
+                    'dryer_id'   => $dryerId,
+                ]);
                 return;
             }
 

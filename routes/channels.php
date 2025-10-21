@@ -8,6 +8,12 @@ Broadcast::channel('drying-process.{dryerId}', function($user, $dryerId){
     return true;
 });
 
+
+// Channel untuk dryer tertentu
+Broadcast::channel('dryer.{dryerId}', function ($user, $dryerId) {
+    return true;
+});
+
 // Broadcast::channel('drying-process.{processId}', function ($user, $processId) {
 
 //     // Penanganan channel default

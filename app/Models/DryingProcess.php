@@ -8,61 +8,56 @@ class DryingProcess extends Model
 {
     protected $table = 'drying_process';
     protected $primaryKey = 'process_id';
+    public $incrementing = true;
+    public $timestamps = true;
+
     protected $fillable = [
-        'user_id',
+        'dryer_id',               // <-- ganti dari user_id ke dryer_id
         'grain_type_id',
         'timestamp_mulai',
         'timestamp_selesai',
-        'berat_gabah',
-        'kadar_air_target',
+        'berat_gabah_awal',
+        'berat_gabah_akhir',
         'kadar_air_awal',
+        'kadar_air_target',
         'kadar_air_akhir',
-        'suhu_gabah_awal',
-        'suhu_gabah_akhir',
-        'suhu_ruangan_awal',
-        'suhu_ruangan_akhir',
-        'suhu_pembakaran_awal',
-        'suhu_pembakaran_akhir',
         'durasi_rekomendasi',
         'durasi_aktual',
         'durasi_terlaksana',
+        'avg_estimasi_durasi',
         'status',
+        'catatan',
+        // 'lokasi',               // <-- tidak ada lagi di drying_process (lokasi ada di bed_dryers)
     ];
 
     protected $casts = [
         'timestamp_mulai' => 'datetime',
         'timestamp_selesai' => 'datetime',
-        'status' => 'string',
-        'durasi_rekomendasi' => 'float', // Tambahkan cast untuk float
-        'berat_gabah' => 'float',
-        'kadar_air_target' => 'float',
-        'kadar_air_awal' => 'float',
-        'kadar_air_akhir' => 'float',
-        'suhu_gabah_awal' => 'float',
-        'suhu_gabah_akhir' => 'float',
-        'suhu_ruangan_awal' => 'float',
-        'suhu_ruangan_akhir' => 'float',
-        'suhu_pembakaran_awal' => 'float',
-        'suhu_pembakaran_akhir' => 'float',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
+    /** Relasi ke dryer */
+    public function bedDryer()
+    {
+        return $this->belongsTo(BedDryer::class, 'dryer_id', 'dryer_id');
+    }
+
+    /** Jenis gabah */
     public function grainType()
     {
         return $this->belongsTo(GrainType::class, 'grain_type_id', 'grain_type_id');
     }
 
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id', 'id');
-    }
-
+    /** Data sensor per proses */
     public function sensorData()
     {
-        return $this->hasMany(SensorData::class, 'process_id');
+        return $this->hasMany(SensorData::class, 'process_id', 'process_id');
     }
 
-    public function trainingData()
+    /** Estimasi per interval */
+    public function predictionEstimations()
     {
-        return $this->hasOne(TrainingData::class, 'process_id');
+        return $this->hasMany(PredictionEstimation::class, 'process_id', 'process_id');
     }
 }

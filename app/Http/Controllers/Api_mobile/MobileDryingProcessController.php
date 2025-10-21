@@ -307,7 +307,7 @@ class MobileDryingProcessController extends Controller
             // pastikan dryer milik user
             if ($process->dryer_id) {
                 $ownsDryer = BedDryer::where('dryer_id', $process->dryer_id)
-                    ->where('user_id', $user->user_id)
+                    ->where('user_id', $user->id)
                     ->exists();
 
                 if (!$ownsDryer) {
