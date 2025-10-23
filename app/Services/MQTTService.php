@@ -398,7 +398,8 @@ class MQTTService
                 'dryer_id' => $dryerId,
             ]));
             $payload = $response->getData(true);
-            event(new SensorDataUpdated($dryerId, $payload));
+            // event(new SensorDataUpdated($dryerId, $payload));
+            broadcast(new SensorDataUpdated($dryerId, $payload));
 
             // broadcast(new SensorDataUpdated($sensorData));
             Log::info('Sensor data stored and broadcasted from MQTT', [

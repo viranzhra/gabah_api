@@ -30,6 +30,11 @@ class SensorDataUpdated implements ShouldBroadcast
         return 'sensor-updated';
     }
 
+    public function broadcastWith()
+    {
+        return ['payload' => $this->payload];
+    }
+
     // private function getSensorDataField($field, $default = null)
     // {
     //     // Tangani jika sensorData adalah array atau objek
