@@ -47,7 +47,7 @@ class RealtimeDataController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->first();
 
-            Log::info('Drying process found for dryer '.$dryerId.': '.($dryingProcess ? '1' : '0'));
+            // Log::info('Drying process found for dryer '.$dryerId.': '.($dryingProcess ? '1' : '0'));
 
             $sensors = [];
             $initialSensors = [];
@@ -199,7 +199,7 @@ class RealtimeDataController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->first();
 
-            Log::info('Dashboard process for dryer '.$dryerId.': '.($dryingProcess ? '1' : '0'));
+            // Log::info('Dashboard process for dryer '.$dryerId.': '.($dryingProcess ? '1' : '0'));
 
             $response = [
                 'current_moisture'        => null,
@@ -214,14 +214,16 @@ class RealtimeDataController extends Controller
 
             if ($dryingProcess) {
                 // Moisture sekarang
-                $latestSensor = SensorData::where('process_id', $dryingProcess->process_id)
-                    ->select('kadar_air_gabah','suhu_gabah','created_at')
-                    ->orderBy('created_at','desc')
+                $latestMoisture = SensorData::where('process_id', $dryingProcess->process_id)
+                    ->whereNotNull('kadar_air_gabah')
+                    ->orderByDesc('timestamp')
+                    ->selectRaw('AVG(kadar_air_gabah) as avg_moisture, MAX(timestamp) as ts')
+                    ->groupBy('timestamp')
                     ->first();
 
-                $response['current_moisture'] = $latestSensor && $latestSensor->kadar_air_gabah !== null
-                    ? number_format((float)$latestSensor->kadar_air_gabah, 2, '.', '')
-                    : ($dryingProcess->kadar_air_akhir !== null
+                $response['current_moisture'] = $latestMoisture
+                    ? number_format((float)$latestMoisture->avg_moisture, 2, '.', '')
+                    : ($dryingProcess->kadar_air_akhir
                         ? number_format((float)$dryingProcess->kadar_air_akhir, 2, '.', '')
                         : null);
 
@@ -247,40 +249,33 @@ class RealtimeDataController extends Controller
 
                 // Ambil 5 titik terakhir (per timestamp) untuk grafik
                 $sensorRows = SensorData::where('process_id', $dryingProcess->process_id)
-                    ->select('kadar_air_gabah','suhu_gabah','suhu_ruangan','suhu_pembakaran','created_at')
-                    ->where(function ($q) {
-                        $q->whereNotNull('kadar_air_gabah')
-                          ->orWhereNotNull('suhu_gabah')
-                          ->orWhereNotNull('suhu_ruangan')
-                          ->orWhereNotNull('suhu_pembakaran');
-                    })
-                    ->orderBy('created_at','desc')
-                    ->take(50)
-                    ->get()
-                    ->groupBy(fn($i) => $i->created_at)
+                    ->selectRaw('
+                        timestamp,
+                        AVG(kadar_air_gabah) as kadar_air_gabah,
+                        AVG(suhu_gabah) as suhu_gabah,
+                        AVG(suhu_ruangan) as suhu_ruangan,
+                        AVG(suhu_pembakaran) as suhu_pembakaran
+                    ')
+                    ->groupBy('timestamp')
+                    ->orderByDesc('timestamp')
                     ->take(5)
-                    ->sortByDesc(fn($g) => strtotime($g->first()->created_at))
+                    ->get()
+                    ->sortBy('timestamp')
                     ->values();
 
                 $moisture = $grainT = $roomT = $burnT = [];
 
-                foreach ($sensorRows as $group) {
-                    $ts = $group->first()->created_at;
-                    $label = date('i:s', strtotime($ts));
+                foreach ($sensorRows as $row) {
+                    $label = Carbon::parse($row->timestamp)->format('i:s');
 
-                    $mSum = $mCnt = $gSum = $gCnt = $rSum = $rCnt = $bSum = $bCnt = 0;
-
-                    foreach ($group as $row) {
-                        if (!is_null($row->kadar_air_gabah)) { $mSum += (float)$row->kadar_air_gabah; $mCnt++; }
-                        if (!is_null($row->suhu_gabah))      { $gSum += (float)$row->suhu_gabah;      $gCnt++; }
-                        if (!is_null($row->suhu_ruangan))    { $rSum += (float)$row->suhu_ruangan;    $rCnt++; }
-                        if (!is_null($row->suhu_pembakaran)) { $bSum += (float)$row->suhu_pembakaran; $bCnt++; }
-                    }
-
-                    if ($mCnt) $moisture[] = ['time' => $label, 'data' => number_format($mSum / $mCnt, 2, '.', '')];
-                    if ($gCnt) $grainT[]   = ['time' => $label, 'data' => number_format($gSum / $gCnt, 2, '.', '')];
-                    if ($rCnt) $roomT[]    = ['time' => $label, 'data' => number_format($rSum / $rCnt, 2, '.', '')];
-                    if ($bCnt) $burnT[]    = ['time' => $label, 'data' => number_format($bSum / $bCnt, 2, '.', '')];
+                    if (!is_null($row->kadar_air_gabah))
+                        $moisture[] = ['time' => $label, 'data' => number_format($row->kadar_air_gabah, 2, '.', '')];
+                    if (!is_null($row->suhu_gabah))
+                        $grainT[] = ['time' => $label, 'data' => number_format($row->suhu_gabah, 2, '.', '')];
+                    if (!is_null($row->suhu_ruangan))
+                        $roomT[] = ['time' => $label, 'data' => number_format($row->suhu_ruangan, 2, '.', '')];
+                    if (!is_null($row->suhu_pembakaran))
+                        $burnT[] = ['time' => $label, 'data' => number_format($row->suhu_pembakaran, 2, '.', '')];
                 }
 
                 $response['moisture_data']            = $moisture;

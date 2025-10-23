@@ -239,7 +239,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Prediction APIs (wajib login)
     Route::post('/prediction/start', [MobilePredictionController::class, 'startPrediction']);
     Route::post('/prediction/stop', [MobilePredictionController::class, 'stopPrediction']);
-    Route::post('/prediction/receive', [MobilePredictionController::class, 'receivePrediction']);
 
     // Bed Dryers
     Route::get('/mybed-dryers', [AuthController::class, 'myBedDryers']);
@@ -261,6 +260,4 @@ Route::get('/dataset', [MobileTrainingDataController::class, 'index']);
 Route::get('/realtime-data', [RealtimeDataController::class, 'index']);
 Route::get('/dashboard-data', [RealtimeDataController::class, 'dashboardData']);
 
-Route::post('/prediction/start', [MobilePredictionController::class, 'startPrediction']);
-Route::post('/prediction/stop', [MobilePredictionController::class, 'stopPrediction']);
 Route::post('/prediction/receive', [MobilePredictionController::class, 'receivePrediction']);

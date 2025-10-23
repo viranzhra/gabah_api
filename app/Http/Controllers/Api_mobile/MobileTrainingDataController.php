@@ -34,7 +34,7 @@ class MobileTrainingDataController extends Controller
                     $kadar_air_gabah  = $this->fmt7($r->kadar_air_gabah);
                     $suhu_ruangan     = $this->fmt7($r->suhu_ruangan);
                     $suhu_pembakaran  = $this->fmt7($r->suhu_pembakaran);
-                    $estimasi_durasi  = $this->fmt7($r->durasi_aktual); // <-- ambil dari training_data
+                    $estimasi_durasi  = $this->fmt7($r->durasi_aktual);
 
                     $intervals[] = [
                         'interval_id'     => $i++,
@@ -56,7 +56,7 @@ class MobileTrainingDataController extends Controller
                     'process_id'          => $group->group_id,
                     'grain_type_id'       => $group->grain_type_id,
                     'berat_gabah'         => $group->massa_awal,
-                    // 'avg_estimasi_durasi' => null, // diminta tidak dipakai
+                    // 'avg_estimasi_durasi' => null,
                     'intervals'           => $intervals,
                 ];
             }

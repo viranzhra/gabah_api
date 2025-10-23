@@ -12,7 +12,7 @@ class MobileNotificationController extends Controller
     {
         $user = $request->user();
 
-        $items = AppNotification::where('user_id', $user->user_id)
+        $items = AppNotification::where('user_id', $user->id)
             ->latest('id')
             ->limit(100)
             ->get()
@@ -37,7 +37,7 @@ class MobileNotificationController extends Controller
         $user = $request->user();
 
         $notif = AppNotification::where('id', $id)
-            ->where('user_id', $user->user_id)
+            ->where('user_id', $user->id)
             ->first();
 
         if (!$notif) {

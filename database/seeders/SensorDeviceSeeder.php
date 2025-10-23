@@ -32,7 +32,7 @@ class SensorDeviceSeeder extends Seeder
         // Satu bed dryer di dalam gudang tersebut
         $bedDryer = BedDryer::firstOrCreate(
             [
-                'dryer_id' => 2,
+                'dryer_id' => 1,
                 'user_id'      => $owner->id,
                 'warehouse_id' => $warehouse->warehouse_id,
                 'nama'         => 'Bed Dryer Utama',
@@ -55,7 +55,7 @@ class SensorDeviceSeeder extends Seeder
             [
                 'device_id'   => 1,
                 'device_name' => 'Tombak 1',
-                'address'     => 'iot/mitra1/dryer2/1',
+                'address'     => 'iot/mitra1/dryer1/1',
                 'location'    => 'Sudut Kiri Depan',
                 'status'      => true,
             ],
@@ -83,7 +83,7 @@ class SensorDeviceSeeder extends Seeder
             [
                 'device_id'   => 5,
                 'device_name' => 'Pembakaran & Pengaduk',
-                'address'     => 'iot/mitra1/dryer2/5',
+                'address'     => 'iot/mitra1/dryer1/5',
                 'location'    => 'Pipa Blower / Pemanas',
                 'status'      => true,
             ],

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api_mobile;
 
 use App\Http\Controllers\Controller;
 use App\Models\DryingProcess;
+use App\Models\BedDryer;
 use App\Models\SensorData;
 use App\Models\PredictionEstimation;
 use Illuminate\Http\Request;
@@ -11,7 +12,6 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-use App\Models\BedDryer;
 use App\Helpers\Notifier;
 
 class MobilePredictionController extends Controller
@@ -32,10 +32,10 @@ class MobilePredictionController extends Controller
 
         try {
             $user = $request->user();
+            // Log::info('Received berat_gabah_awal', ['berat' => $request->berat_gabah_awal]);
 
-            // Opsional: pastikan dryer milik user (kalau kebijakan demikian)
             $dryer = BedDryer::where('dryer_id', $request->dryer_id)
-                ->when($user && $user->role !== 'admin', fn($q) => $q->where('user_id', $user->user_id))
+                ->where('user_id', $user->id)
                 ->firstOrFail();
 
             // Cari proses pending/ongoing pada dryer ini; kalau tidak ada buat pending
